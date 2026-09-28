@@ -86,13 +86,13 @@ to become healthy. Any release can be brought back.</p>
 
 </div>
 
-## Start in one command
+## Get started
 
 === "I deploy an application"
 
     ```bash
-    gh repo create blackstorm-dev/my-app --private \
-      --template blackstorm-dev/project-template --clone
+    gh repo create YOUR_ORG/my-app --private \
+      --template blackstorm-dev/blackstorm-project-template --clone
     ```
 
     Then follow [Your first release](developers/first-release.md).
@@ -100,10 +100,13 @@ to become healthy. Any release can be brought back.</p>
 === "I run the platform"
 
     ```bash
-    make init && make cluster ENV=local
+    git clone --recurse-submodules https://github.com/blackstorm-dev/blackstorm-template.git
+    cd blackstorm-template
+    make init
     ```
 
-    Then follow the [Quick start](operators/quick-start.md).
+    Configure your installation and secrets, then create the cluster with the
+    [Quick start](operators/quick-start.md).
 
 ## Find your way
 

@@ -8,42 +8,73 @@
 | Docker Desktop | Runs the local cluster |
 | GitHub CLI, authenticated | Reads repositories and sets secrets |
 
+## Prepare your installation
+
+Clone the template with its sample application:
+
+```bash
+git clone --recurse-submodules https://github.com/blackstorm-dev/blackstorm-template.git
+cd blackstorm-template
+make init
+mise exec -- gh auth login
+```
+
+Create your own infrastructure repository and point `origin` at it. Configure
+`live/<environment>/config/values.yaml` with that repository, your organization, domain,
+administrators, and storage. Terraform and Kubernetes use these same values.
+
+`make init` creates `age.key` and configures its public recipient in `.sops.yaml`.
+The `*.example` files contain placeholders, not credentials. For each secret required by your
+environment, run the command printed at the top of its example, without the `.example` suffix:
+
+```bash
+make secrets FILE=live/local/secrets/github-arc.yaml
+```
+
+The command opens SOPS with the example's structure. Replace its placeholders and save the encrypted
+file. Configure the GitHub Apps and OIDC clients as described in
+[Identity and access](architecture/identity.md). Use the same client secret on each side of an
+OIDC integration. See [Secrets](architecture/secrets.md) for the file layout.
+
+Commit and push your configuration, `.sops.yaml`, and encrypted secrets to your repository before
+creating resources: Argo CD reads the published revision. Never commit `age.key`.
+
 ## Create a cluster
 
 === "Local"
 
+    Start Docker Desktop, then run:
+
     ```bash
-    git clone git@github.com:blackstorm-dev/blackstorm-infra.git
-    cd blackstorm-infra
-    make init # (1)!
-    make cluster ENV=local # (2)!
+    make cluster ENV=local
     ```
 
-    1.  Installs tools and hooks, and creates `age.key` if it is missing.
-    2.  Creates kind in Docker, then runs the bootstrap.
+    Creates kind, installs the bootstrap, and waits for the platform. The command prints the Argo CD
+    URL as soon as it is reachable and lists the panel URLs when the platform is ready.
 
 === "Production"
 
+    Configure `live/prod/config/values.yaml` and the secrets under `live/prod/secrets/`, including
+    DigitalOcean, Spaces, Cloudflare, and the GitHub Apps. For example:
+
     ```bash
-    make init
-    sops live/prod/secrets/digitalocean.env # (1)!
-    sops live/prod/secrets/cloudflare.env
+    make secrets FILE=live/prod/secrets/digitalocean.env
+    make secrets FILE=live/prod/secrets/cloudflare.env
+    # Commit and push the completed configuration and encrypted secrets.
     make cluster ENV=prod
     ```
 
-    1.  Production needs DigitalOcean, Spaces, and Cloudflare credentials, and a domain
-        configured in Cloudflare.
-
 === "Existing installation"
 
+    Use the installation's configured repository and recover its key before running `make init`:
+
     ```bash
-    cp <backup>/age.key . # (1)!
+    cp <backup>/age.key .
     make init
-    make connect ENV=prod # (2)!
+    make connect ENV=prod
     ```
 
-    1.  Recover the key before `make init`, or a new one is generated.
-    2.  Writes `.kube/prod`. mise adds it to `KUBECONFIG` inside the repository.
+    `make connect` writes `.kube/prod`. mise adds it to `KUBECONFIG` inside the repository.
 
 !!! danger "Back up `age.key`"
 

@@ -23,8 +23,8 @@ flowchart LR
 ## 1. Create the repository
 
 ```bash
-gh repo create blackstorm-dev/my-app --private \
-  --template blackstorm-dev/project-template --clone
+gh repo create YOUR_ORG/my-app --private \
+  --template blackstorm-dev/blackstorm-project-template --clone
 cd my-app
 make init # (1)!
 ```
@@ -39,13 +39,17 @@ make secrets FILE=secrets/dockerhub.env # (1)!
 make secrets FILE=secrets/platform/dockerhub.yaml # (2)!
 make secrets FILE=deploy/staging/secrets/dockerhub.yaml # (3)!
 make secrets FILE=deploy/production/secrets/dockerhub.yaml
+make secrets FILE=deploy/staging/secrets/app.yaml
+make secrets FILE=deploy/production/secrets/app.yaml
 ```
 
 1.  CI uses it to publish your image.
 2.  Kargo uses it to find your releases.
 3.  The cluster uses it to download your image.
 
-Each command opens your editor. Replace the values and save. Details in [Secrets](secrets.md).
+Before encrypting deployment and promotion secrets, add the cluster's public age recipient
+to their rules in `.sops.yaml`. Each command opens its example in your editor. Replace the values
+and save. Details in [Secrets](secrets.md).
 
 ## 3. Declare what you release
 
@@ -72,15 +76,18 @@ spec:
     - my-app-staging.localhost
 ```
 
+Update the image name in `deploy/base/deployment.yaml` to match the contract, and set the
+runner label in `.github/workflows/ci.yaml` to the one provided by your platform.
+
 ## 4. Publish
 
 ```bash
-gh repo edit --add-topic blackstorm-deploy # (1)!
+gh repo edit --add-topic YOUR_DISCOVERY_TOPIC # (1)!
 git add -A && git commit -m "feat: first release" && git push
 gh run watch --exit-status # (2)!
 ```
 
-1.  The platform discovers repositories with this topic.
+1.  Use `github.discoveryTopic` from the target cluster's `live/<environment>/config/values.yaml`.
 2.  Follows the CI run until it finishes.
 
 !!! success "You should see"

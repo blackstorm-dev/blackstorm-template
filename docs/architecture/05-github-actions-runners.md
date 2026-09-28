@@ -27,7 +27,7 @@ Entrar con la cuenta que administra `blackstorm-dev` a
 | Campo | Valor |
 |---|---|
 | Nombre | `blackstorm-dev-runners` (si está ocupado, elegir otro nombre; no afecta los manifests) |
-| Homepage URL | `https://github.com/blackstorm-dev/blackstorm-infra` |
+| Homepage URL | `https://github.com/blackstorm-dev/blackstorm-template` |
 | Webhook | Desactivar **Active** |
 | Repository permissions | Solo Metadata: Read-only, si aparece; no otorgar acceso a Contents ni Administration |
 | Organization permissions | **Self-hosted runners: Read and write** |

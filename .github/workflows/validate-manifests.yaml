@@ -1,22 +1,6 @@
 name: Validate manifests
 
 on:
-  pull_request:
-    branches: [main, master]
-    paths:
-      - 'kubernetes/**'
-      - 'tests/fixtures/delivery/**'
-      - 'tests/unit/**'
-      - scripts/cluster-status.py
-      - Makefile
-      - 'live/**/kubernetes/**'
-      - 'live/**/config/**'
-      - 'live/**/transformers/**'
-      - 'live/**/generators/**'
-      - 'live/**/secrets/**'
-      - mise.toml
-      - .github/workflows/validate-manifests.yaml
-      - '!**/*.md'
   push:
     branches: [main, master]
     paths:
@@ -39,13 +23,11 @@ permissions:
   contents: read
 
 concurrency:
-  group: validate-manifests-${{ github.event.pull_request.number || github.ref }}
+  group: validate-manifests-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   validate:
-    # Los PR de forks no ejecutan codigo en el runner del cluster.
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: blackstorm-prod
     timeout-minutes: 20
     steps:
@@ -81,7 +63,7 @@ jobs:
           helm template project-template kubernetes/charts/project-onboarding \
             --namespace argocd \
             --set repository=project-template \
-            --set repoURL=https://github.com/blackstorm-dev/project-template.git \
+            --set repoURL=https://github.com/blackstorm-dev/blackstorm-project-template.git \
             --set revision=main \
             --set infrastructureRepoURL=git@github.com:example/infra.git \
             > "$workdir/manifests/project-onboarding.yaml"

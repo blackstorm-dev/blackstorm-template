@@ -14,10 +14,11 @@
 ## Edit
 
 ```bash
-sops live/prod/secrets/digitalocean.env # (1)!
+make secrets FILE=live/prod/secrets/digitalocean.env # (1)!
 ```
 
-1.  Opens the editor and encrypts again on save.
+1.  After `make init`, creates the encrypted file from its `.example` and opens the editor.
+    Replace the placeholders and save. Existing encrypted files open for editing.
 
 | Variable in a `.env` file | Becomes |
 |---|---|
@@ -41,7 +42,7 @@ flowchart LR
 | Situation | Action |
 |---|---|
 | New machine | Copy `age.key` to the repository root, then `make init` |
-| Rotate a token | Create the new one, `sops <file>`, revoke the old one |
+| Rotate a token | Create the new one, `make secrets FILE=<file>`, revoke the old one |
 | The hook rejects a commit | The file is in plain text: `sops -e -i <file>` |
 | `age.key` is lost | New key, its public part in `.sops.yaml`, new credentials, re-encrypt everything |
 

@@ -34,7 +34,7 @@ flowchart LR
 
 ```yaml title="kubernetes/charts/project-onboarding/templates/kargo.yaml"
 sources:
-  - repoURL: git@github.com:blackstorm-dev/blackstorm-infra.git
+  - repoURL: git@github.com:blackstorm-dev/blackstorm-template.git
     path: kubernetes/charts/project-delivery
     helm:
       valueFiles:

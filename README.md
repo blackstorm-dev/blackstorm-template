@@ -536,3 +536,15 @@ make infra-destroy ENV=<environment> UNIT=cluster
 | Commit | The Git hooks installed by `make init`: secrets are encrypted, Terraform and Terragrunt files are formatted |
 | Pull request | The `Validate manifests` workflow renders and validates the Kubernetes manifests |
 | Merge | Manual; Argo CD synchronizes the change |
+
+## Secret checks
+
+The official `blackstorm-dev/blackstorm-template` and `blackstorm-dev/blackstorm-project-template`
+repositories accept only secret examples and resource lists in their secrets directories. The
+pre-commit hook identifies the repository through `origin`; CI uses `github.repository`.
+Your own repository can commit SOPS-encrypted secrets as usual. Examples must retain their setup
+header and placeholder values. `make init` installs the local hook; CI checks run on push or manually.
+
+## License
+
+[MIT](LICENSE).

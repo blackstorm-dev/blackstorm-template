@@ -27,7 +27,7 @@ flowchart LR
 ```yaml title="live/local/kubernetes/applicationset.yaml"
 generators:
   - git:
-      repoURL: git@github.com:blackstorm-dev/blackstorm-infra.git
+      repoURL: git@github.com:blackstorm-dev/blackstorm-template.git
       revision: main
       directories:
         - path: live/local/kubernetes/*/* # (1)!

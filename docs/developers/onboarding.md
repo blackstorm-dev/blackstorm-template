@@ -1,12 +1,12 @@
 # Onboard a repository
 
-You end up with a staging and a production environment that deploy on their own.
+Staging deploys automatically. Production receives the release when you promote it in Kargo.
 
 ## Before you start
 
 | You need | Detail |
 |---|---|
-| A repository in `blackstorm-dev` | Lowercase letters, digits, and hyphens; starts with a letter; up to 50 characters |
+| A repository in the platform's configured GitHub organization | Lowercase letters, digits, and hyphens; starts with a letter; up to 50 characters |
 | Read access for the GitOps GitHub App | Ask an operator |
 | A private Docker Hub repository | Same name as the GitHub repository |
 
@@ -15,8 +15,8 @@ You end up with a staging and a production environment that deploy on their own.
 ### 1. Create the repository
 
 ```bash
-gh repo create blackstorm-dev/my-app --private \
-  --template blackstorm-dev/project-template --clone
+gh repo create YOUR_ORG/my-app --private \
+  --template blackstorm-dev/blackstorm-project-template --clone
 cd my-app
 ```
 
@@ -31,7 +31,8 @@ make init # (1)!
 
 ### 3. Add your registry credentials
 
-Three files, all encrypted. See [Secrets](secrets.md).
+Create the CI, promotion, and deployment secrets from their `*.example` files.
+Deployment secrets must include the cluster's public age recipient. See [Secrets](secrets.md).
 
 ### 4. Declare the contract
 
@@ -74,11 +75,16 @@ patches:
 
 Do the same in `deploy/production/kustomization.yaml`.
 
+Use the image name in `deploy/base/deployment.yaml` that matches `deploy/platform.yaml`,
+and configure the runner label in `.github/workflows/ci.yaml` for your platform.
+
 ### 6. Turn discovery on
 
+Replace `YOUR_DISCOVERY_TOPIC` with `github.discoveryTopic` from the target cluster configuration.
+
 ```bash
-gh repo edit --add-topic blackstorm-deploy
-git push
+gh repo edit --add-topic YOUR_DISCOVERY_TOPIC
+git add -A && git commit -m "Configure application" && git push
 ```
 
 ## Check it worked

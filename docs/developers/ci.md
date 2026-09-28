@@ -1,6 +1,11 @@
 # Continuous integration
 
-Every push to `main` builds your images and publishes a release.
+Pushes to `main` or `master` run the checks and publish a validated release. Documentation-only
+changes are excluded; unchanged application images can be reused.
+
+Opening or updating a pull request does not run workflows. Maintainers can review the proposal
+and manually run checks on a branch in their repository before merging it. Manual runs do not
+publish images or release tags.
 
 ## Set it up, once
 
@@ -38,7 +43,7 @@ A release is one Git tag plus one image per entry in `deploy/platform.yaml`.
 
     If the tag or one image is missing, nothing is promoted.
 
-## Run it
+## Run checks manually
 
 ```bash
 gh workflow run ci.yaml --ref main

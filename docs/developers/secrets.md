@@ -8,13 +8,24 @@ Secrets stay encrypted in your repository. You edit them with one command.
 | Deployment | `deploy/<environment>/secrets/*.yaml` | Your application |
 | Promotion | `secrets/platform/*.yaml` | Kargo, to read your private images |
 
+## Initialize encryption
+
+Run `make init` in your own application repository. It creates an age key, configures `.sops.yaml`,
+and uploads the private key to that repository's `SOPS_AGE_KEY` GitHub secret.
+
+Before encrypting files under `deploy/*/secrets/` and `secrets/platform/`, add the cluster's **public**
+age recipient to the corresponding `.sops.yaml` rules, alongside your project's recipient.
+Obtain it from the platform operator; the cluster needs it to decrypt these files. Keep CI-only
+credentials encrypted for the project. Never exchange private age keys.
+
 ## Create or edit a secret
 
 ```bash
 make secrets FILE=<path> # (1)!
 ```
 
-1.  Opens your editor. The file is encrypted when you save.
+1.  Creates the encrypted file from its `*.example` if needed, then opens your editor.
+    Replace the placeholders and save. Commit the encrypted file; keep the example unchanged.
 
 === "CI"
 
