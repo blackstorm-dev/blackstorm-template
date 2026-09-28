@@ -28,7 +28,7 @@ concurrency:
 
 jobs:
   publish:
-    runs-on: blackstorm-prod
+    runs-on: ${{ github.repository == 'blackstorm-dev/blackstorm-template' && 'ubuntu-latest' || 'blackstorm-prod' }}
     timeout-minutes: 15
     permissions:
       contents: write

@@ -91,7 +91,7 @@ class TemplateSecretPolicyTests(unittest.TestCase):
 
     def test_kustomization_cannot_hide_secret_generator(self):
         path = 'live/local/secrets/kustomization.yaml'
-        safe = 'apiVersion: kustomize.config.k8s.io/v1beta1\nkind: Kustomization\nresources: []\n'
+        safe = 'apiVersion: kustomize.config.k8s.io/v1beta1\nkind: Kustomization\nnamespace: project-template\nresources: []\n'
         self.stage(path, safe)
         self.assertEqual(self.run_check()[0], 0)
         self.stage(path, safe + 'secretGenerator:\n- name: hidden\n  literals: [password=test-value]\n')
