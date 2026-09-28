@@ -1,0 +1,71 @@
+{{- $repository := required "Falta repository" .Values.repository -}}
+{{- $repoURL := required "Falta repoURL" .Values.repoURL -}}
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Project
+metadata:
+  name: {{ $repository }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: {{ $repository }}-kargo
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  sourceRepos:
+    - {{ $repoURL | quote }}
+    - {{ required "Falta infrastructureRepoURL" .Values.infrastructureRepoURL | quote }}
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: {{ $repository }}
+  clusterResourceWhitelist: []
+  namespaceResourceWhitelist:
+    - group: kargo.akuity.io
+      kind: ProjectConfig
+    - group: kargo.akuity.io
+      kind: Warehouse
+    - group: kargo.akuity.io
+      kind: Stage
+    - group: isindir.github.com
+      kind: SopsSecret
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ $repository }}-kargo
+  namespace: argocd
+spec:
+  project: {{ $repository }}-kargo
+  sources:
+    - repoURL: {{ required "Falta infrastructureRepoURL" .Values.infrastructureRepoURL | quote }}
+      targetRevision: main
+      path: kubernetes/charts/project-delivery
+      helm:
+        valueFiles:
+          - $project/deploy/platform.yaml
+        parameters:
+          - name: repository
+            value: {{ $repository | quote }}
+          - name: repoURL
+            value: {{ $repoURL | quote }}
+    - repoURL: {{ $repoURL | quote }}
+      targetRevision: {{ .Values.revision | quote }}
+      ref: project
+      path: secrets/platform
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: {{ $repository }}
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 1m

@@ -1,0 +1,120 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "repository",
+    "repoURL",
+    "images",
+    "environments"
+  ],
+  "properties": {
+    "repository": {
+      "type": "string",
+      "pattern": "^[a-z]([a-z0-9-]{0,48}[a-z0-9])?$"
+    },
+    "repoURL": {
+      "type": "string",
+      "pattern": "^https://github.com/[a-zA-Z0-9_-]+/[a-zA-Z0-9_.-]+[.]git$"
+    },
+    "releaseFormat": {
+      "enum": [
+        "coordinated-tags",
+        "commit-sha"
+      ]
+    },
+    "images": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "oneOf": [
+          {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9./_-]+$"
+          },
+          {
+            "type": "object",
+            "required": [
+              "repository"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "repository": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9./_-]+$"
+              },
+              "name": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9./_-]+$"
+              },
+              "deploy": {
+                "type": "boolean"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "environments": {
+      "type": "object",
+      "required": [
+        "staging",
+        "production"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "staging": {
+          "type": "object",
+          "required": [
+            "path",
+            "promotion"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "type": "string",
+              "pattern": "^deploy/[a-zA-Z0-9_-]+$"
+            },
+            "promotion": {
+              "enum": [
+                "automatic",
+                "manual"
+              ]
+            },
+            "from": {
+              "enum": [
+                "staging"
+              ]
+            }
+          }
+        },
+        "production": {
+          "type": "object",
+          "required": [
+            "path",
+            "promotion"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "type": "string",
+              "pattern": "^deploy/[a-zA-Z0-9_-]+$"
+            },
+            "promotion": {
+              "enum": [
+                "automatic",
+                "manual"
+              ]
+            },
+            "from": {
+              "enum": [
+                "staging"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

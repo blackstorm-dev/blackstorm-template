@@ -1,0 +1,130 @@
+name: Validate manifests
+
+on:
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'kubernetes/**'
+      - 'tests/fixtures/delivery/**'
+      - 'tests/unit/**'
+      - scripts/cluster-status.py
+      - Makefile
+      - 'live/**/kubernetes/**'
+      - 'live/**/config/**'
+      - 'live/**/transformers/**'
+      - 'live/**/generators/**'
+      - 'live/**/secrets/**'
+      - mise.toml
+      - .github/workflows/validate-manifests.yaml
+      - '!**/*.md'
+  push:
+    branches: [main, master]
+    paths:
+      - 'kubernetes/**'
+      - 'tests/fixtures/delivery/**'
+      - 'tests/unit/**'
+      - scripts/cluster-status.py
+      - Makefile
+      - 'live/**/kubernetes/**'
+      - 'live/**/config/**'
+      - 'live/**/transformers/**'
+      - 'live/**/generators/**'
+      - 'live/**/secrets/**'
+      - mise.toml
+      - .github/workflows/validate-manifests.yaml
+      - '!**/*.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-manifests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    # Los PR de forks no ejecutan codigo en el runner del cluster.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: blackstorm-prod
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        with:
+          install_args: helm kubectl kubeconform uv
+          cache: false
+      - name: Prepare placeholder secrets for manifest validation
+        run: |
+          find live -type f -name '*.example' -print0 | while IFS= read -r -d '' file; do
+            cp "$file" "${file%.example}"
+          done
+      - name: Check cluster readiness reporting
+        run: uv run --python 3.13 --with PyYAML==6.0.3 python -B -m unittest discover -s tests/unit -v
+      - name: Render and validate local and production manifests
+        shell: bash
+        env:
+          KUBERNETES_VERSION: '1.35.0'
+        run: |
+          set -euo pipefail
+          workdir=$(mktemp -d "${RUNNER_TEMP}/infra-check.XXXXXX")
+          trap 'rm -rf "$workdir"' EXIT
+          mkdir -p "$workdir/manifests" "$workdir/schemas"
+
+          for file in live/*/kubernetes/kustomization.yaml live/*/kubernetes/*/*/kustomization.yaml; do
+            directory=${file%/kustomization.yaml}
+            echo "Rendering $directory"
+            kubectl kustomize --enable-helm "$directory" > "$workdir/manifests/${directory//\//_}.yaml"
+          done
+          helm template project-template kubernetes/charts/project-onboarding \
+            --namespace argocd \
+            --set repository=project-template \
+            --set repoURL=https://github.com/blackstorm-dev/project-template.git \
+            --set revision=main \
+            --set infrastructureRepoURL=git@github.com:example/infra.git \
+            > "$workdir/manifests/project-onboarding.yaml"
+
+          for fixture in tests/fixtures/delivery/*.yaml; do
+            name=$(basename "$fixture" .yaml)
+            helm template "delivery-$name" kubernetes/charts/project-delivery \
+              --values "$fixture" \
+              --set repository=sample \
+              --set repoURL=https://github.com/example/sample.git \
+              > "$workdir/manifests/delivery-$name.yaml"
+          done
+
+          # Convertidor oficial de kubeconform, de la misma version fijada en mise.
+          # Los esquemas salen de los CRDs renderizados por nuestros charts.
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/yannh/kubeconform/$(kubeconform -v)/scripts/openapi2jsonschema.py" \
+            --output "$workdir/openapi2jsonschema.py"
+          docker run --rm --interactive \
+            --user "$(id -u):$(id -g)" \
+            --env PYTHONDONTWRITEBYTECODE=1 \
+            --env FILENAME_FORMAT='{kind}_{fullgroup}_{version}' \
+            --volume "$workdir:$workdir" \
+            --workdir "$workdir/schemas" \
+            python:3.13-alpine sh -se <<'CONVERT'
+          pip install --quiet --no-cache-dir --target /tmp/python PyYAML==6.0.2
+          PYTHONPATH=/tmp/python python ../openapi2jsonschema.py ../manifests/*.yaml
+          # Kubernetes admite ObjectMeta completo aunque un CRD describa solo metadata.name.
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          for path in Path(".").glob("*.json"):
+              schema = json.loads(path.read_text())
+              metadata = schema.get("properties", {}).get("metadata", {})
+              if "properties" in metadata:
+                  metadata["additionalProperties"] = True
+                  path.write_text(json.dumps(schema))
+          PY
+          CONVERT
+
+          kubeconform -strict -summary \
+            -skip CustomResourceDefinition \
+            -kubernetes-version "$KUBERNETES_VERSION" \
+            -schema-location default \
+            -schema-location "$workdir/schemas/{{.ResourceKind}}_{{.Group}}_{{.ResourceAPIVersion}}.json" \
+            "$workdir/manifests"

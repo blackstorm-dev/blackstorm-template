@@ -1,0 +1,43 @@
+# Una Application por cada live/prod/kubernetes/<namespace>/<app>/. Agregar una app a este cluster =
+# crear esa carpeta con un kustomization.yaml que apunte a kubernetes/apps/<namespace>/<app>.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: platform
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: configured-by-environment
+        revision: main
+        directories:
+          - path: live/prod/kubernetes/*/*
+  template:
+    metadata:
+      name: "{{ index .path.segments 3 }}-{{ .path.basename }}" # <namespace>-<app>
+    spec:
+      project: platform
+      source:
+        repoURL: configured-by-environment
+        targetRevision: main
+        path: "{{ .path.path }}"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{ index .path.segments 3 }}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+          - ServerSideDiff=true # comparar con lo que el API server devuelve (defaults de CRDs incluidos), no con el YAML crudo
+          - SkipDryRunOnMissingResource=true # una app puede usar CRDs que instala otra app: no cortar el dry-run
+        retry:
+          limit: 10 # y reintentar hasta que esos CRDs existan
+          backoff:
+            duration: 15s
+            factor: 2
+            maxDuration: 3m

@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kargo-api
+  namespace: kargo
+data:
+  OIDC_ENABLED: "true"
+  OIDC_ISSUER_URL: configured-by-environment
+  OIDC_CLIENT_ID: kargo
+  OIDC_CLI_CLIENT_ID: kargo-cli
+  OIDC_ADDITIONAL_SCOPES: groups
+  OIDC_USERNAME_CLAIM: preferred_username
+  GLOBAL_SERVICE_ACCOUNT_NAMESPACES: kargo
+  # Kargo's built-in external Dex support fetches signing keys in-cluster.
+  # Browsers still use the public HTTPS issuer above.
+  DEX_ENABLED: "true"
+  DEX_SERVER_ADDRESS: http://dex.identity.svc.cluster.local:5556
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kargo-admin
+  namespace: kargo
+  annotations:
+    rbac.kargo.akuity.io/claims: '{"preferred_username":["configured-by-environment"]}'
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kargo-api
+  namespace: kargo
+  annotations:
+    configmap.reloader.stakater.com/reload: kargo-api

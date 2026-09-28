@@ -1,0 +1,28 @@
+fullnameOverride: gatus
+config:
+  existingConfigMap: gatus-config
+  items:
+    - key: config.yaml
+      path: config.yaml
+sidecar:
+  gatewayNames: [envoy-external]
+  kinds:
+    httproute:
+      enable: true
+      auto: true
+    service:
+      enable: false
+persistence:
+  enabled: true
+  size: 1Gi
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    memory: 256Mi
+monitoring:
+  serviceMonitor:
+    enabled: true
+    labels:
+      release: monitoring

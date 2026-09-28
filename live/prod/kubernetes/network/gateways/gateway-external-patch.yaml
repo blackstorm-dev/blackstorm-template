@@ -1,0 +1,8 @@
+# external-dns apunta los registros de las apps de esta puerta al nombre estable del túnel (lo crea Terraform).
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: envoy-external
+  namespace: network
+  annotations:
+    external-dns.kubernetes.io/target: configured-by-environment

@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../../../kubernetes/apps/o11y/gatus
+  - httproute.yaml
+  - ../../../secrets/gatus
+patches:
+  - target:
+      kind: PersistentVolumeClaim
+      name: gatus
+    patch: |-
+      - op: add
+        path: /spec/storageClassName
+        value: local-backup
+  - path: oidc.yaml
+configMapGenerator:
+  - name: gatus-oidc
+    namespace: o11y
+    literals:
+      - security.yaml=environment-config
+
+transformers:
+  - ../../../transformers

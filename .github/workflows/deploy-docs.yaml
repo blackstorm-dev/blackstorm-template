@@ -1,0 +1,123 @@
+name: Publish documentation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - '!docs/plans/**'
+      - '!docs/diagrams/**'
+      - '!docs/architecture/**'
+      - '!docs/resources/references.md'
+      - '!docs/README.md'
+      - mkdocs.yml
+      - Makefile
+      - mise.toml
+      - live/prod/config/values.yaml
+      - containers/docs/**
+      - tests/unit/test_docs_cache_bust.py
+      - .github/workflows/deploy-docs.yaml
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - live/prod/config/values.yaml
+      - containers/docs/**
+      - tests/unit/test_docs_cache_bust.py
+      - mkdocs.yml
+      - Makefile
+      - mise.toml
+      - .github/workflows/deploy-docs.yaml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: blackstorm-prod
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: true
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        with:
+          install_args: uv gh sops
+          cache: false
+      - name: Read deployment configuration
+        id: config
+        run: |
+          uv run --with PyYAML==6.0.3 python - <<'PYTHON'
+          import os
+          import yaml
+          from pathlib import Path
+          config = yaml.safe_load(Path("live/prod/config/values.yaml").read_text())
+          image = f"docker.io/{config['registry']['namespace']}/{config['docs']['image']}"
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              print(f"image={image}", file=output)
+          PYTHON
+      - name: Download tutorial videos and thumbnails
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download docs-media --pattern '*.mp4' --pattern '*.jpg' --dir docs/videos
+      - name: Build documentation
+        run: |
+          python3 -B -m unittest discover -s tests/unit -p test_docs_cache_bust.py -v
+          uvx --from 'mkdocs<2' --with 'mkdocs-material<10' --with mkdocs-glightbox mkdocs build --strict
+      - uses: docker/setup-buildx-action@v3
+        if: github.event_name != 'pull_request'
+      - name: Docker Hub login
+        if: github.event_name != 'pull_request'
+        env:
+          SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
+        run: |
+          sops exec-env live/prod/secrets/dockerhub.env '
+            set -eu
+            printf "::add-mask::%s\n" "$DOCKERHUB_TOKEN"
+            printf "%s" "$DOCKERHUB_TOKEN" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
+          '
+      - name: Publish documentation image
+        if: github.event_name != 'pull_request'
+        id: image
+        uses: docker/build-push-action@v6
+        with:
+          context: site
+          file: containers/docs/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.config.outputs.image }}:${{ github.sha }}
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+      - name: Update the image deployed by Argo CD
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          DIGEST: ${{ steps.image.outputs.digest }}
+        run: |
+          git fetch origin main
+          git checkout -B main origin/main
+          uv run --with PyYAML==6.0.3 python - <<'PYTHON'
+          import os
+          import yaml
+          from pathlib import Path
+          path = Path("live/prod/kubernetes/docs/site/kustomization.yaml")
+          config = yaml.safe_load(path.read_text())
+          config["images"] = [{"name": "docs-site", "newName": "configured-by-environment",
+                               "digest": os.environ["DIGEST"]}]
+          path.write_text(yaml.safe_dump(config, sort_keys=False))
+          PYTHON
+          git add live/prod/kubernetes/docs/site/kustomization.yaml
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'docs(deploy): update site image'
+          git push origin HEAD:main
+      - name: Docker Hub logout
+        if: always() && github.event_name != 'pull_request'
+        run: docker logout

@@ -1,0 +1,379 @@
+apiVersion: builtin
+kind: ReplacementTransformer
+metadata:
+  name: environment
+replacements:
+  - sourceValue: {{ include "environment.host" (dict "name" "argocd" "config" .Values) | quote }}
+    targets:
+      - select:
+          kind: HTTPRoute
+          name: argocd
+        fieldPaths:
+          - spec.hostnames.0
+  - sourceValue: {{ include "environment.host" (dict "name" "dex" "config" .Values) | quote }}
+    targets:
+      - select:
+          kind: HTTPRoute
+          name: dex
+        fieldPaths:
+          - spec.hostnames.0
+  - sourceValue: {{ include "environment.host" (dict "name" "grafana" "config" .Values) | quote }}
+    targets:
+      - select:
+          kind: HTTPRoute
+          name: grafana
+        fieldPaths:
+          - spec.hostnames.0
+  - sourceValue: {{ include "environment.host" (dict "name" "kargo" "config" .Values) | quote }}
+    targets:
+      - select:
+          kind: HTTPRoute
+          name: kargo
+        fieldPaths:
+          - spec.hostnames.0
+  - sourceValue: {{ include "environment.host" (dict "name" "velero" "config" .Values) | quote }}
+    targets:
+      - select:
+          kind: HTTPRoute
+          name: velero-ui
+        fieldPaths:
+          - spec.hostnames.0
+  - sourceValue: {{ include "environment.host" (dict "name" "stackgres" "config" .Values) | quote }}
+    targets:
+      - select:
+          kind: HTTPRoute
+          name: stackgres
+        fieldPaths:
+          - spec.hostnames.0
+  - sourceValue: {{ include "environment.host" (dict "name" "gatus" "config" .Values) | quote }}
+    targets:
+      - select:
+          kind: HTTPRoute
+          name: gatus
+        fieldPaths:
+          - spec.hostnames.0
+  - sourceValue: {{ include "environment.host" (dict "name" "rollouts" "config" .Values) | quote }}
+    targets:
+      - select:
+          kind: HTTPRoute
+          name: argo-rollouts-dashboard
+        fieldPaths:
+          - spec.hostnames.0
+  - sourceValue: {{ include "environment.host" (dict "name" "docs" "config" .Values) | quote }}
+    targets:
+      - select:
+          kind: HTTPRoute
+          name: docs
+        fieldPaths:
+          - spec.hostnames.0
+  - sourceValue: {{ include "environment.url" (dict "name" "argocd" "config" .Values) | quote }}
+    targets:
+      - select:
+          kind: ConfigMap
+          name: argocd-cm
+        fieldPaths:
+          - data.url
+  - sourceValue: {{ tpl (.Files.Get "files/argocd-oidc.yaml") . | quote }}
+    targets:
+      - select:
+          kind: ConfigMap
+          name: argocd-cm
+        fieldPaths:
+          - data.oidc\.config
+  - sourceValue: {{ tpl (.Files.Get "files/dex.yaml") . | b64enc | quote }}
+    targets:
+      - select:
+          kind: Secret
+          name: dex-config
+        fieldPaths:
+          - data.config\.yaml
+  - sourceValue: {{ tpl (.Files.Get "files/gatus.yaml") . | quote }}
+    targets:
+      - select:
+          kind: ConfigMap
+          name: gatus-oidc
+        fieldPaths:
+          - data.security\.yaml
+  - sourceValue: {{ include "environment.url" (dict "name" "dex" "config" .Values) | quote }}
+    targets:
+      - select:
+          kind: ConfigMap
+          name: kargo-api
+        fieldPaths:
+          - data.OIDC_ISSUER_URL
+      - select:
+          kind: SecurityPolicy
+          name: argo-rollouts-oidc
+        fieldPaths:
+          - spec.oidc.provider.issuer
+  - sourceValue: {{ include "environment.url" (dict "name" "kargo" "config" .Values) | quote }}
+    targets:
+      - select:
+          kind: ConfigMap
+          name: kargo-api
+        fieldPaths:
+          - data.ADMIN_ACCOUNT_TOKEN_ISSUER
+      - select:
+          kind: ConfigMap
+          name: kargo-controller
+        fieldPaths:
+          - data.API_SERVER_BASE_URL
+  - sourceValue: {{ trimPrefix "https://" (include "environment.url" (dict "name" "kargo" "config" .Values)) | quote }}
+    targets:
+      - select:
+          kind: ConfigMap
+          name: kargo-api
+        fieldPaths:
+          - data.ADMIN_ACCOUNT_TOKEN_AUDIENCE
+  - sourceValue: {{ include "environment.url" (dict "name" "grafana" "config" .Values) | quote }}
+    targets:
+      - select:
+          kind: Deployment
+          name: monitoring-grafana
+        fieldPaths:
+          - spec.template.spec.containers.[name=grafana].env.[name=GF_SERVER_ROOT_URL].value
+  - sourceValue: {{ printf "%s/auth" (include "environment.url" (dict "name" "dex" "config" .Values)) | quote }}
+    targets:
+      - select:
+          kind: Deployment
+          name: monitoring-grafana
+        fieldPaths:
+          - spec.template.spec.containers.[name=grafana].env.[name=GF_AUTH_GENERIC_OAUTH_AUTH_URL].value
+      - select:
+          kind: Deployment
+          name: velero-ui
+        fieldPaths:
+          - spec.template.spec.containers.[name=velero-ui].env.[name=OAUTH_AUTHORIZATION_URL].value
+  - sourceValue: {{ printf "%s/login" (include "environment.url" (dict "name" "velero" "config" .Values)) | quote }}
+    targets:
+      - select:
+          kind: Deployment
+          name: velero-ui
+        fieldPaths:
+          - spec.template.spec.containers.[name=velero-ui].env.[name=OAUTH_REDIRECT_URI].value
+  - sourceValue: {{ printf "%s/oauth2/callback" (include "environment.url" (dict "name" "rollouts" "config" .Values)) | quote }}
+    targets:
+      - select:
+          kind: SecurityPolicy
+          name: argo-rollouts-oidc
+        fieldPaths:
+          - spec.oidc.redirectURL
+  - sourceValue: {{ printf "*.%s" .Values.domain | quote }}
+    targets:
+      - select:
+          kind: Certificate
+          name: wildcard-tls
+        fieldPaths:
+          - spec.dnsNames.0
+  - sourceValue: {{ .Values.domain | quote }}
+    targets:
+      - select:
+          kind: Certificate
+          name: wildcard-tls
+        fieldPaths:
+          - spec.dnsNames.1
+{{ if eq .Values.environment "local" }}
+  - sourceValue: {{ .Values.domain | quote }}
+    targets:
+      - select:
+          kind: Certificate
+          name: wildcard-tls
+        fieldPaths:
+          - spec.commonName
+  - sourceValue: {{ include "environment.host" (dict "name" "velero" "config" .Values) | quote }}
+    targets:
+      - select:
+          kind: Certificate
+          name: wildcard-tls
+        fieldPaths:
+          - spec.dnsNames.2
+  - sourceValue: {{ include "environment.host" (dict "name" "stackgres" "config" .Values) | quote }}
+    targets:
+      - select:
+          kind: Certificate
+          name: wildcard-tls
+        fieldPaths:
+          - spec.dnsNames.3
+  - sourceValue: {{ include "environment.host" (dict "name" "gatus" "config" .Values) | quote }}
+    targets:
+      - select:
+          kind: Certificate
+          name: wildcard-tls
+        fieldPaths:
+          - spec.dnsNames.4
+  - sourceValue: {{ .Values.cluster.httpsPort | toString | quote }}
+    targets:
+      - select:
+          kind: ApplicationSet
+          name: platform
+        fieldPaths:
+          - metadata.annotations.blackstorm\.dev/public-https-port
+{{ end }}
+{{ if ne .Values.environment "local" }}
+  - sourceValue: {{ printf "tunnel.%s" .Values.domain | quote }}
+    targets:
+      - select:
+          kind: Gateway
+          name: envoy-external
+        fieldPaths:
+          - metadata.annotations.external-dns\.kubernetes\.io/target
+        options:
+          create: true
+{{ end }}
+  - sourceValue: {{ .Values.github.organization | quote }}
+    targets:
+      - select:
+          kind: ApplicationSet
+          name: projects
+        fieldPaths:
+          - spec.generators.0.scmProvider.github.organization
+      - select:
+          kind: ApplicationSet
+          name: apps-staging|apps-production
+        fieldPaths:
+          - spec.generators.0.matrix.generators.0.scmProvider.github.organization
+  - sourceValue: {{ printf "(^|,)%s(,|$)" .Values.github.discoveryTopic | quote }}
+    targets:
+      - select:
+          kind: ApplicationSet
+          name: projects
+        fieldPaths:
+          - spec.generators.0.scmProvider.filters.0.labelMatch
+      - select:
+          kind: ApplicationSet
+          name: apps-staging|apps-production
+        fieldPaths:
+          - spec.generators.0.matrix.generators.0.scmProvider.filters.0.labelMatch
+  - sourceValue: {{ include "environment.repoURL" . | quote }}
+    targets:
+      - select:
+          kind: ApplicationSet
+          name: platform
+        fieldPaths:
+          - spec.generators.0.git.repoURL
+          - spec.template.spec.source.repoURL
+      - select:
+          kind: ApplicationSet
+          name: projects
+        fieldPaths:
+          - spec.template.spec.source.repoURL
+      - select:
+          kind: AppProject
+          name: platform
+        fieldPaths:
+          - spec.sourceRepos.0
+  - sourceValue: {{ include "environment.repoURL" . | quote }}
+    targets:
+      - select:
+          kind: ApplicationSet
+          name: projects
+        fieldPaths:
+          - spec.template.spec.source.helm.valuesObject.infrastructureRepoURL
+        options:
+          create: true
+  - sourceValue: {{ printf "https://github.com/%s" .Values.github.organization | quote }}
+    targets:
+      - select:
+          kind: AutoscalingRunnerSet
+          name: blackstorm
+        fieldPaths:
+          - spec.githubConfigUrl
+  - sourceValue: {{ printf "blackstorm-%s" .Values.environment | quote }}
+    targets:
+      - select:
+          kind: AutoscalingRunnerSet
+          name: blackstorm
+        fieldPaths:
+          - spec.runnerScaleSetName
+  - sourceValue: {{ printf "g, %s, role:admin\n" .Values.identity.adminUsername | quote }}
+    targets:
+      - select:
+          kind: ConfigMap
+          name: argocd-rbac-cm
+        fieldPaths:
+          - data.policy\.csv
+  - sourceValue: {{ dict "preferred_username" (list .Values.identity.adminUsername) | toJson | quote }}
+    targets:
+      - select:
+          kind: ServiceAccount
+          name: kargo-admin
+        fieldPaths:
+          - metadata.annotations.rbac\.kargo\.akuity\.io/claims
+  - sourceValue: {{ printf "preferred_username == '%s' && 'GrafanaAdmin' || 'None'" .Values.identity.adminUsername | quote }}
+    targets:
+      - select:
+          kind: Deployment
+          name: monitoring-grafana
+        fieldPaths:
+          - spec.template.spec.containers.[name=grafana].env.[name=GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH].value
+  - sourceValue: {{ .Values.identity.adminUsername | quote }}
+    targets:
+      - select:
+          kind: ClusterRoleBinding
+          name: stackgres-oidc-admin
+        fieldPaths:
+          - subjects.0.name
+  - sourceValue: {{ printf "u,%s,manage,all\n" .Values.identity.adminEmail | quote }}
+    targets:
+      - select:
+          kind: ConfigMap
+          name: velero-ui-policy
+        fieldPaths:
+          - data.policies\.csv
+  - sourceValue: {{ .Values.backups.bucket | quote }}
+    targets:
+      - select:
+          kind: BackupStorageLocation
+          name: default
+        fieldPaths:
+          - spec.objectStorage.bucket
+      - select:
+          kind: SGObjectStorage
+          name: spaces
+        fieldPaths:
+          - spec.s3Compatible.bucket
+  - sourceValue: {{ .Values.backups.region | quote }}
+    targets:
+      - select:
+          kind: BackupStorageLocation
+          name: default
+        fieldPaths:
+          - spec.config.region
+      - select:
+          kind: SGObjectStorage
+          name: spaces
+        fieldPaths:
+          - spec.s3Compatible.region
+  - sourceValue: {{ printf "https://%s.digitaloceanspaces.com" .Values.backups.region | quote }}
+    targets:
+      - select:
+          kind: BackupStorageLocation
+          name: default
+        fieldPaths:
+          - spec.config.s3Url
+      - select:
+          kind: SGObjectStorage
+          name: spaces
+        fieldPaths:
+          - spec.s3Compatible.endpoint
+{{ if .Values.docs }}
+  - sourceValue: {{ printf "docker.io/%s/%s" .Values.registry.namespace .Values.docs.image | quote }}
+    targets:
+      - select:
+          kind: Deployment
+          name: docs
+        fieldPaths:
+          - spec.template.spec.containers.[name=nginx].image
+        options:
+          delimiter: "@"
+          index: 0
+{{ end }}
+{{ if eq .Values.environment "local" }}
+  - sourceValue: {{ tpl (.Files.Get "files/coredns.conf") . | quote }}
+    targets:
+      - select:
+          kind: ConfigMap
+          name: coredns
+        fieldPaths:
+          - data.Corefile
+{{ end }}

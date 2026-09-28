@@ -1,0 +1,42 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "automerge": false,
+  "ignorePaths": [
+    "projects/**",
+    "**/secrets/**",
+    "kubernetes/apps/**/charts/**",
+    "live/*/kubernetes/**/charts/**"
+  ],
+  "kubernetes": {
+    "managerFilePatterns": [
+      "/^(kubernetes|live)/.*\\.ya?ml$/"
+    ]
+  },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^mise\\.toml$/"
+      ],
+      "matchStrings": [
+        "\"asdf:mise-plugins/mise-helm-diff\"\\s*=\\s*\"(?<currentValue>[^\"]+)\""
+      ],
+      "depNameTemplate": "databus23/helm-diff",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^kubernetes/charts/environment-config/templates/stackgres\\.yaml$/"
+      ],
+      "matchStrings": [
+        "name: (?<depName>stackgres-operator)\\nrepo: (?<registryUrl>[^\\n]+)\\nversion: (?<currentValue>[^\\n]+)"
+      ],
+      "datasourceTemplate": "helm"
+    }
+  ]
+}

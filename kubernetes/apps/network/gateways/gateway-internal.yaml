@@ -1,0 +1,32 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: envoy-internal
+  namespace: network
+spec:
+  gatewayClassName: envoy
+  # Cómo se expone este Envoy (tipo de Service, puertos): lo define cada entorno en un EnvoyProxy del mismo nombre.
+  infrastructure:
+    parametersRef:
+      group: gateway.envoyproxy.io
+      kind: EnvoyProxy
+      name: envoy-internal
+  listeners:
+    - name: http
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: https
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - group: "" # core; explícito porque el API server lo agrega y si no ArgoCD ve diferencia
+            kind: Secret
+            name: wildcard-tls # lo emite cert-manager; el Certificate es por entorno
+      allowedRoutes:
+        namespaces:
+          from: All

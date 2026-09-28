@@ -1,0 +1,18 @@
+# Certificado de las puertas en local: autofirmado, para *.localhost. El navegador va a avisar; es esperable.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: wildcard-tls
+  namespace: network
+spec:
+  commonName: configured-by-environment
+  secretName: wildcard-tls
+  dnsNames:
+    - "configured-by-environment"
+    - configured-by-environment
+    - configured-by-environment
+    - configured-by-environment
+    - configured-by-environment
+  issuerRef:
+    kind: ClusterIssuer
+    name: selfsigned

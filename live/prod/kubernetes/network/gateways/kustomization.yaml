@@ -1,0 +1,12 @@
+# Las puertas en prod. Ninguna se expone directo: el tráfico entra por el túnel de Cloudflare, que le pega a
+# envoy-external por su Service (ClusterIP). Certificado wildcard de Let's Encrypt para *.blackstorm.dev.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../../../kubernetes/apps/network/gateways
+  - certificate.yaml
+patches:
+  - path: gateway-external-patch.yaml
+
+transformers:
+  - ../../../transformers

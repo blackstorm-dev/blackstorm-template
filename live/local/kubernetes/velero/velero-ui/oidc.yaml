@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: velero-ui
+  annotations:
+    reloader.stakater.com/auto: 'true'
+spec:
+  template:
+    spec:
+      containers:
+        - name: velero-ui
+          env:
+            - name: BASIC_AUTH_ENABLED
+              value: 'false'
+            - name: OAUTH_AUTH_ENABLED
+              value: 'true'
+            - name: OAUTH_NAME
+              value: GitHub
+            - name: OAUTH_AUTHORIZATION_URL
+              value: configured-by-environment
+            - name: OAUTH_TOKEN_URL
+              value: http://dex.identity.svc.cluster.local:5556/token
+            - name: OAUTH_USER_INFO_URL
+              value: http://dex.identity.svc.cluster.local:5556/userinfo
+            - name: OAUTH_CLIENT_ID
+              value: velero-ui
+            - name: OAUTH_OAUTH_SCOPE
+              value: openid profile email groups
+            - name: OAUTH_REDIRECT_URI
+              value: configured-by-environment
+            - name: OAUTH_GROUP_CLAIM
+              value: groups
+            - name: POLICY_FILE_PATH
+              value: /etc/velero-ui/policies.csv
+            - name: OAUTH_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: velero-ui-oidc
+                  key: client-secret
+          volumeMounts:
+            - name: oidc-policy
+              mountPath: /etc/velero-ui
+              readOnly: true
+      volumes:
+        - name: oidc-policy
+          configMap:
+            name: velero-ui-policy

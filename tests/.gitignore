@@ -1,0 +1,7 @@
+# Lo que SeleniumBase deja al correr: capturas y HTML de los fallos, descargas.
+latest_logs/
+archived_logs/
+downloaded_files/
+archived_files/
+.venv/
+__pycache__/

@@ -1,0 +1,90 @@
+{{- $repo := .Values.repoURL -}}
+{{- $project := .Values.repository -}}
+{{- $sha := eq .Values.releaseFormat "commit-sha" -}}
+{{- $gitPattern := ternary "^ci-[0-9]{10}-[0-9]{3}-[a-f0-9]{40}$" "^blackstorm-ci-[0-9]{10}-[0-9]{3}$" $sha -}}
+{{- $imagePattern := ternary "^[a-f0-9]{40}$" $gitPattern $sha -}}
+{{- $images := list -}}
+{{- $deployImages := list -}}
+{{- range .Values.images -}}
+{{- $image := . -}}
+{{- if kindIs "string" . -}}{{- $image = dict "repository" . -}}{{- end -}}
+{{- $images = append $images $image -}}
+{{- if or (not (hasKey $image "deploy")) $image.deploy -}}
+{{- $deployImages = append $deployImages (dict "repository" $image.repository "name" (default $image.repository $image.name)) -}}
+{{- end -}}
+{{- end -}}
+{{- if .Values.environments.staging.from -}}{{ fail "staging must receive releases directly" }}{{- end -}}
+{{- if ne (default "" .Values.environments.production.from) "staging" -}}{{ fail "production.from must be staging" }}{{- end -}}
+apiVersion: kargo.akuity.io/v1alpha1
+kind: ProjectConfig
+metadata:
+  name: {{ $project }}
+  namespace: {{ $project }}
+spec:
+  promotionPolicies:
+  {{- range $name, $environment := .Values.environments }}
+    - stageSelector:
+        name: {{ $name }}
+      autoPromotionEnabled: {{ eq $environment.promotion "automatic" }}
+  {{- end }}
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Warehouse
+metadata:
+  name: app
+  namespace: {{ $project }}
+spec:
+  interval: 5m0s
+  subscriptions:
+  {{- range $images }}
+    - image:
+        repoURL: {{ .repository | quote }}
+        imageSelectionStrategy: {{ ternary "NewestBuild" "Lexical" $sha }}
+        allowTagsRegexes: [{{ $imagePattern | quote }}]
+        discoveryLimit: 5
+  {{- end }}
+    - git:
+        repoURL: {{ $repo | quote }}
+        commitSelectionStrategy: Lexical
+        allowTagsRegexes: [{{ $gitPattern | quote }}]
+        discoveryLimit: 5
+  freightCreationCriteria:
+    expression: >-
+      commitFrom('{{ $repo }}') != nil
+      {{- range $images }}
+      && imageFrom('{{ .repository }}') != nil
+      && imageFrom('{{ .repository }}').Tag == {{ if $sha }}split(commitFrom('{{ $repo }}').Tag, '-')[3]{{ else }}commitFrom('{{ $repo }}').Tag{{ end }}
+      {{- end }}
+{{ range $name, $environment := .Values.environments }}
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: {{ $name }}
+  namespace: {{ $project }}
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: app
+      sources:
+        {{- if $environment.from }}
+        stages: [{{ $environment.from | quote }}]
+        {{- else }}
+        direct: true
+        {{- end }}
+  promotionTemplate:
+    spec:
+      vars:
+        - name: gitRepo
+          value: {{ $repo | quote }}
+        - name: manifestsPath
+          value: {{ $environment.path | quote }}
+        - name: images
+          value: {{ printf "${{ %s }}" (toJson $deployImages) | quote }}
+      steps:
+        - task:
+            kind: ClusterPromotionTask
+            name: deploy-application
+          as: deploy
+{{ end }}

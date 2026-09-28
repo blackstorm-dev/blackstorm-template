@@ -1,0 +1,21 @@
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: prod-daily
+  namespace: velero
+spec:
+  schedule: "0 6 * * *" # 03:00 Argentina
+  useOwnerReferencesInBackup: false
+  template:
+    storageLocation: default
+    ttl: 168h0m0s
+    includedNamespaces: ["*"]
+    excludedNamespaces: [velero, kube-system, kube-public, kube-node-lease]
+    includeClusterResources: true
+    excludedResources:
+      - events
+      - events.events.k8s.io
+    snapshotVolumes: false
+    # Los PVCs se copian solo si el Pod declara backup.velero.io/backup-volumes.
+    # Postgres se respalda con StackGres (base backup + WAL).
+    defaultVolumesToFsBackup: false

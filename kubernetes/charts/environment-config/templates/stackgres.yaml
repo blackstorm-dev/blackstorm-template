@@ -1,0 +1,17 @@
+apiVersion: builtin
+kind: HelmChartInflationGenerator
+metadata:
+  name: stackgres
+name: stackgres-operator
+repo: https://stackgres.io/downloads/stackgres-k8s/stackgres/helm
+version: 1.19.1
+releaseName: stackgres-operator
+namespace: stackgres
+valuesFile: values.yaml
+valuesInline:
+  authentication:
+    oidc:
+      authServerUrl: {{ include "environment.url" (dict "name" "dex" "config" .Values) | quote }}
+valuesMerge: override
+includeCRDs: true
+skipTests: true

@@ -1,0 +1,7 @@
+# Envoy Gateway con la configuración por defecto. Los Gateways concretos están en network/gateways.
+deployment:
+  envoyGateway:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi

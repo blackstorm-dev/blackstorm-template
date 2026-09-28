@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../../../../kubernetes/apps/docs/site
+- httproute.yaml
+- ../../../secrets/docs
+images:
+- name: docs-site
+  newName: configured-by-environment
+  digest: sha256:490f6003791938b4cff67f7c2a6a159c082b3a248a9bbb0f72c3ec4e9f64ab7e
+transformers:
+- ../../../transformers

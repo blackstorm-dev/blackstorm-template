@@ -1,0 +1,18 @@
+apiVersion: trust.cert-manager.io/v1alpha1
+kind: Bundle
+metadata:
+  name: local-trust
+spec:
+  sources:
+    - useDefaultCAs: true
+    # Local development uses a self-signed wildcard certificate.
+    # Only its public certificate is distributed, never its private key.
+    - secret:
+        name: wildcard-tls
+        key: tls.crt
+  target:
+    configMap:
+      key: ca-certificates.crt
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: o11y

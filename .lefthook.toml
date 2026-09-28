@@ -1,0 +1,19 @@
+# Hooks de git. Se activan una vez con `lefthook install`.
+
+[pre-commit]
+parallel = true
+
+[pre-commit.commands.gitleaks]
+run = "mise exec -- gitleaks git --pre-commit --staged --redact=100 --no-banner"
+
+# Los secretos deben estar cifrados; kustomization.yaml solo enumera recursos.
+[pre-commit.commands.sops-encrypted]
+run = "bash scripts/check-sops"
+
+[pre-commit.commands.terraform-fmt]
+glob = "*.tf"
+run = "terraform fmt -check -diff {staged_files}"
+
+[pre-commit.commands.terragrunt-fmt]
+glob = "*.hcl"
+run = "terragrunt hcl fmt --check --diff --working-dir terraform"

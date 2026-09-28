@@ -1,0 +1,16 @@
+# Proyecto de ArgoCD para la plataforma (lo nuestro). Puede tocar cualquier namespace y recursos de cluster.
+# Los proyectos de clientes tendrán el suyo, restringido a su namespace (fase 4).
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform
+  namespace: argocd
+spec:
+  sourceRepos:
+    - configured-by-environment
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: "*"
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"

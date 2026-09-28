@@ -1,0 +1,22 @@
+# Las puertas en local: envoy-external sale por NodePort 30080/30443 (kind los publica en localhost:8080/8443),
+# envoy-internal queda solo dentro del cluster. Certificado autofirmado para *.localhost.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../../../kubernetes/apps/network/gateways
+  - certificate.yaml
+patches:
+  - path: envoyproxy-external-patch.yaml
+  - patch: |-
+      apiVersion: gateway.networking.k8s.io/v1
+      kind: Gateway
+      metadata:
+        name: envoy-external
+        namespace: network
+        annotations:
+          gatus.home-operations.com/endpoint: |
+            client:
+              insecure: true
+
+transformers:
+  - ../../../transformers

@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: identity
+resources:
+  - ../../../../../kubernetes/apps/identity/dex
+  - ../../../secrets/dex
+  - httproute.yaml
+# This file contains configuration and credential references, not credentials.
+secretGenerator:
+  - name: dex-config
+    literals:
+      - config.yaml=environment-config
+
+transformers:
+  - ../../../transformers

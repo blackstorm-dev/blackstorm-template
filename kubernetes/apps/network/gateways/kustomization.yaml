@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: network
+
+# Las dos puertas del cluster. Los proyectos enganchan sus HTTPRoute a una de ellas.
+#   envoy-external: público (en prod, detrás del túnel de Cloudflare)
+#   envoy-internal: solo dentro del cluster / red interna
+# Cada Gateway tiene su EnvoyProxy (cómo se crean sus pods: Service, recursos). El certificado wildcard-tls lo pone
+# cada entorno; local además patchea envoy-external a NodePort.
+resources:
+  - gateway-external.yaml
+  - envoyproxy-external.yaml
+  - gateway-internal.yaml
+  - envoyproxy-internal.yaml

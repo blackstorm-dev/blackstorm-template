@@ -1,0 +1,86 @@
+{{- $repository := required "Falta repository" .Values.repository -}}
+{{- $repoURL := required "Falta repoURL" .Values.repoURL -}}
+{{- if not (regexMatch "^[a-z]([a-z0-9-]{0,48}[a-z0-9])?$" $repository) -}}
+{{- fail "repository debe tener entre 1 y 50 caracteres DNS: minúsculas, números y guiones; empezar con letra y terminar con letra o número" -}}
+{{- end -}}
+{{- range $environment := list "staging" "production" }}
+{{- $name := printf "%s-%s" $repository $environment }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ $name }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: {{ $name }}
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  sourceRepos:
+    - {{ $repoURL | quote }}
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: {{ $name }}
+  clusterResourceWhitelist: []
+  namespaceResourceWhitelist:
+    - group: isindir.github.com
+      kind: SopsSecret
+    - group: apps
+      kind: Deployment
+    - group: argoproj.io
+      kind: Rollout
+    - group: argoproj.io
+      kind: AnalysisTemplate
+    - group: apps
+      kind: StatefulSet
+    - group: batch
+      kind: Job
+    - group: batch
+      kind: CronJob
+    - group: autoscaling
+      kind: HorizontalPodAutoscaler
+    - group: policy
+      kind: PodDisruptionBudget
+    - group: networking.k8s.io
+      kind: NetworkPolicy
+    - group: ""
+      kind: ServiceAccount
+    - group: ""
+      kind: Service
+    - group: ""
+      kind: PersistentVolumeClaim
+    - group: ""
+      kind: ConfigMap
+    - group: ""
+      kind: Secret
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+    - group: monitoring.coreos.com
+      kind: ServiceMonitor
+    - group: monitoring.coreos.com
+      kind: PodMonitor
+    - group: monitoring.coreos.com
+      kind: PrometheusRule
+    - group: stackgres.io
+      kind: SGCluster
+    - group: stackgres.io
+      kind: SGInstanceProfile
+    - group: stackgres.io
+      kind: SGPostgresConfig
+    - group: stackgres.io
+      kind: SGPoolingConfig
+    - group: stackgres.io
+      kind: SGObjectStorage
+    - group: stackgres.io
+      kind: SGBackup
+    - group: stackgres.io
+      kind: SGDbOps
+    - group: stackgres.io
+      kind: SGScript
+{{- end }}

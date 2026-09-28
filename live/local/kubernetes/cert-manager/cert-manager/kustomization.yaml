@@ -1,0 +1,6 @@
+# cert-manager corre en local. Firma con un issuer autofirmado (en prod: Let's Encrypt).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../../../kubernetes/apps/cert-manager/cert-manager
+  - clusterissuer.yaml

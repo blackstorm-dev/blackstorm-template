@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: network
+
+# Envoy Gateway: instala los CRDs de Gateway API y el controller que crea un Envoy por cada Gateway.
+helmCharts:
+  - name: gateway-helm
+    repo: oci://docker.io/envoyproxy
+    version: 1.9.1
+    releaseName: envoy-gateway
+    namespace: network
+    valuesFile: values.yaml
+    includeCRDs: true
+
+resources:
+  - gatewayclass.yaml

@@ -1,0 +1,14 @@
+images:
+- docker.io/example/sample-server
+- docker.io/example/sample-web
+- repository: docker.io/example/sample-backup
+  deploy: false
+- docker.io/example/sample-chatwoot
+environments:
+  staging:
+    path: deploy/staging
+    promotion: automatic
+  production:
+    path: deploy/production
+    promotion: manual
+    from: staging

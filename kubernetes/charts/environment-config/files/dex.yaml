@@ -1,0 +1,67 @@
+issuer: {{ include "environment.url" (dict "name" "dex" "config" .Values) }}
+storage:
+  type: kubernetes
+  config:
+    inCluster: true
+enablePasswordDB: false
+web:
+  allowedOrigins:
+    - {{ include "environment.url" (dict "name" "kargo" "config" .Values) }}
+  allowedHeaders:
+    - Content-Type
+connectors:
+  - type: github
+    id: github
+    name: GitHub
+    config:
+      clientID: $GITHUB_CLIENT_ID
+      clientSecret: $GITHUB_CLIENT_SECRET
+      redirectURI: {{ include "environment.url" (dict "name" "dex" "config" .Values) }}/callback
+      orgs:
+        - name: {{ .Values.github.organization }}
+      teamNameField: slug
+staticClients:
+  - id: argocd
+    name: Argo CD
+    secretEnv: ARGOCD_CLIENT_SECRET
+    redirectURIs:
+      - {{ include "environment.url" (dict "name" "argocd" "config" .Values) }}/auth/callback
+  - id: argocd-cli
+    name: Argo CD CLI
+    public: true
+    redirectURIs:
+      - http://localhost:8085/auth/callback
+  - id: kargo
+    name: Kargo
+    public: true
+    redirectURIs:
+      - {{ include "environment.url" (dict "name" "kargo" "config" .Values) }}/login
+  - id: kargo-cli
+    name: Kargo CLI
+    public: true
+  - id: grafana
+    name: grafana
+    secretEnv: GRAFANA_CLIENT_SECRET
+    redirectURIs:
+      - {{ include "environment.url" (dict "name" "grafana" "config" .Values) }}/login/generic_oauth
+  - id: velero-ui
+    name: velero-ui
+    secretEnv: VELERO_UI_CLIENT_SECRET
+    redirectURIs:
+      - {{ include "environment.url" (dict "name" "velero" "config" .Values) }}/login
+  - id: stackgres
+    name: stackgres
+    secretEnv: STACKGRES_CLIENT_SECRET
+    redirectURIs:
+      - {{ include "environment.url" (dict "name" "stackgres" "config" .Values) }}/stackgres/auth/external
+  - id: gatus
+    name: gatus
+    secretEnv: GATUS_CLIENT_SECRET
+    redirectURIs:
+      - {{ include "environment.url" (dict "name" "gatus" "config" .Values) }}/authorization-code/callback
+{{ if .Values.identity.rolloutsClient }}  - id: argo-rollouts
+    name: Argo Rollouts
+    secretEnv: ARGO_ROLLOUTS_CLIENT_SECRET
+    redirectURIs:
+      - {{ include "environment.url" (dict "name" "rollouts" "config" .Values) }}/oauth2/callback
+{{ end -}}

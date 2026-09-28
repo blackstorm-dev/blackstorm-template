@@ -1,0 +1,72 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: apps-production
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - matrix:
+        generators:
+          - scmProvider:
+              cloneProtocol: https
+              github:
+                organization: configured-by-environment
+                appSecretName: github-gitops
+                allBranches: false
+                excludeArchivedRepos: true
+              filters:
+                - repositoryMatch: '^[a-z]([a-z0-9-]{0,48}[a-z0-9])?$'
+                  branchMatch: '^(main|master)$'
+                  labelMatch: configured-by-environment
+                  pathsExist:
+                    - deploy/platform.yaml
+          - git:
+              repoURL: '{{ .url }}'
+              revision: '{{ .sha }}'
+              files:
+                - path: deploy/platform.yaml
+              pathParamPrefix: contract
+  syncPolicy:
+    preserveResourcesOnDeletion: true
+  ignoreApplicationDifferences:
+    - jsonPointers:
+        - /spec/source/targetRevision
+  template:
+    metadata:
+      name: '{{ .repository }}-production'
+      annotations:
+        argocd.argoproj.io/compare-options: ServerSideDiff=true,IncludeMutationWebhook=true
+        kargo.akuity.io/authorized-stage: '{{ .repository }}:production'
+    spec:
+      project: '{{ .repository }}-production'
+      source:
+        repoURL: '{{ .url }}'
+        targetRevision: deploy/production
+        path: '{{ .environments.production.path }}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{ .repository }}-production'
+      ignoreDifferences:
+        - group: argoproj.io
+          kind: Rollout
+          jsonPointers:
+            - /spec/template/metadata/annotations/reloader.stakater.com~1last-reloaded-from
+        - group: stackgres.io
+          kind: SGCluster
+          jsonPointers:
+            - /metadata/generation
+            - /status
+        - group: apps
+          kind: Deployment
+          jsonPointers:
+            - /spec/template/metadata/annotations/reloader.stakater.com~1last-reloaded-from
+      syncPolicy:
+        automated:
+          enabled: true
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - PruneLast=true
+          - RespectIgnoreDifferences=true

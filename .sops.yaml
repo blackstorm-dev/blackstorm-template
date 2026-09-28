@@ -1,0 +1,7 @@
+# make init replaces the placeholder with the public recipient from age.key.
+creation_rules:
+- path_regex: ^live/[^/]+/secrets/.*\.ya?ml$
+  encrypted_regex: ^(data|stringData)$
+  age: REPLACE_WITH_AGE_PUBLIC_KEY
+- path_regex: ^live/[^/]+/secrets/.*
+  age: REPLACE_WITH_AGE_PUBLIC_KEY

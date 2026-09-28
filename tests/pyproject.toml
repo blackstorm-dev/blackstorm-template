@@ -1,0 +1,20 @@
+# Videotutoriales de la plataforma: recorridos de navegador que validan el proceso que enseñan.
+# Proyecto Python aparte: maneja las interfaces del clúster como una persona, no importa nada del repo.
+[project]
+name = "tutorials"
+version = "0"
+description = "Browser journeys over the platform interfaces; each one is a test and a video tutorial."
+requires-python = ">=3.12"
+dependencies = [
+    "pytest>=8.0.0",
+    "seleniumbase>=4.30",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+markers = [
+    "tutorial(title): recorrido completo que se graba como videotutorial; el título nombra el video",
+]

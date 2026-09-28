@@ -1,0 +1,18 @@
+authentication:
+  createAdminSecret: false
+  user: admin
+adminui:
+  service:
+    exposeHTTP: true
+cert:
+  certManager:
+    autoConfigure: true
+collector:
+  prometheusOperator:
+    allowDiscovery: false
+    monitors:
+      - name: monitoring-kube-prometheus-prometheus
+        namespace: o11y
+        metadata:
+          labels:
+            release: monitoring

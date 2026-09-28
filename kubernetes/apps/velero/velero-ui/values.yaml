@@ -1,0 +1,24 @@
+configuration:
+  general:
+    veleroNamespace: velero
+    secretPassPhrase:
+      existingSecret: velero-ui-admin
+      key: pass_phrase
+env:
+  - name: BASIC_AUTH_ENABLED
+    value: "true"
+  - name: BASIC_AUTH_USERNAME
+    value: admin
+  - name: BASIC_AUTH_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: velero-ui-admin
+        key: password
+  - name: DEFAULT_TIMEZONE
+    value: America/Argentina/Buenos_Aires
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    memory: 512Mi

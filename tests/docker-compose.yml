@@ -1,0 +1,47 @@
+# El Chrome que se filma y su grabador. Sólo los levanta `make tutorial-videos`, que los baja al terminar.
+services:
+  chrome-video:
+    image: selenium/standalone-chrome:153.0-20260909
+    # Chrome mapea sus tabs sobre /dev/shm: con los 64 MB del default de Docker se cae a mitad de una grabación.
+    shm_size: 2gb
+    ports:
+      - "4444" # el Grid: SeleniumBase se conecta acá
+      - "7900" # noVNC, para mirar la sesión en vivo mientras graba
+    environment:
+      SE_NODE_MAX_SESSIONS: 1
+      # Un tutorial entero es UNA sesión, y los 300 s del default la cortan por la mitad.
+      SE_NODE_SESSION_TIMEOUT: 3600
+    # Las interfaces se publican en el HOST (kind expone el gateway en localhost:8443), no en esta red.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # Un ffmpeg por toma: `tutorial-videos` lo arranca antes de cada recorrido y lo detiene al terminar.
+  # Va con `-framerate` para que el video dure lo mismo que el reloj aunque la máquina esté cargada; el
+  # grabador del propio Selenium numera los cuadros a ritmo fijo y el video sale acelerado o en cámara lenta.
+  recorder:
+    image: selenium/video:ffmpeg-8.1-20260909
+    profiles: ["take"]
+    depends_on:
+      - chrome-video
+    entrypoint:
+      - ffmpeg
+      - -hide_banner
+      - -loglevel
+      - error
+      - -y
+      - -f
+      - x11grab
+      - -framerate
+      - "15"
+      - -video_size
+      - 1920x1080
+      - -i
+      - chrome-video:99.0
+      - -c:v
+      - libx264
+      - -preset
+      - ultrafast
+      - -pix_fmt
+      - yuv420p
+    volumes:
+      - ../var/tutorials:/videos

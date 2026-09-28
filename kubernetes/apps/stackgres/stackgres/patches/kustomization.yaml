@@ -1,0 +1,54 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+patches:
+  # Kubernetes omite required: []; quitarlo evita un OutOfSync permanente.
+  - target:
+      kind: CustomResourceDefinition
+      name: sgbackups.stackgres.io
+    patch: |-
+      - op: remove
+        path: /spec/versions/0/schema/openAPIV3Schema/properties/status/properties/sgBackupConfig/properties/storage/properties/s3/properties/awsCredentials/required
+  - target:
+      kind: CustomResourceDefinition
+      name: sgobjectstorages.stackgres.io
+    patch: |-
+      - op: remove
+        path: /spec/versions/0/schema/openAPIV3Schema/properties/spec/properties/s3/properties/awsCredentials/required
+  # El Job que instala SGConfig necesita el CRD y RBAC antes de ejecutarse.
+  # Con PreSync correría antes de que Argo aplique esos recursos.
+  - target:
+      annotationSelector: helm.sh/hook
+    patch: |-
+      - op: remove
+        path: /metadata/annotations/helm.sh~1hook
+      - op: remove
+        path: /metadata/annotations/helm.sh~1hook-delete-policy
+      - op: remove
+        path: /metadata/annotations/helm.sh~1hook-weight
+      - op: add
+        path: /metadata/annotations/argocd.argoproj.io~1sync-wave
+        value: "-2"
+  - target:
+      kind: CustomResourceDefinition
+    patch: |-
+      - op: add
+        path: /metadata/annotations
+        value:
+          argocd.argoproj.io/sync-wave: "-3"
+  - patch: |-
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: stackgres-operator-install-sgconfig
+        namespace: stackgres
+        annotations:
+          argocd.argoproj.io/hook: Sync
+          argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+          argocd.argoproj.io/sync-wave: "-1"
+  - patch: |-
+      $patch: delete
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: stackgres-operator-remove-sgconfig
+        namespace: stackgres

@@ -1,0 +1,34 @@
+# Example installation: replace these values before creating a cluster.
+environment: prod
+domain: example.com
+github:
+  organization: example-org
+  infrastructureRepository: example-infra
+  discoveryTopic: example-deploy-prod
+cluster:
+  name: example-prod
+  region: nyc3
+  nodeSize: s-4vcpu-8gb
+  nodeCount: 3
+cloudflare:
+  accountId: REPLACE_ME
+  origin: http://envoy-external.network.svc.cluster.local:80
+  protectedHosts: []
+  adminEmails:
+  - admin@example.com
+backups:
+  bucket: example-backups
+  region: nyc3
+state:
+  bucket: example-tfstate
+  endpoint: https://nyc3.digitaloceanspaces.com
+identity:
+  adminUsername: example-admin
+  adminEmail: admin@example.com
+  allowedSubjects:
+  - REPLACE_ME
+  rolloutsClient: true
+registry:
+  namespace: example-user
+docs:
+  image: blackstorm-infra-docs

@@ -1,0 +1,26 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../../../kubernetes/apps/o11y/kube-prometheus-stack
+  - ../../../secrets/grafana
+  - httproute.yaml
+patches:
+  - patch: |-
+      apiVersion: apps/v1
+      kind: DaemonSet
+      metadata:
+        name: monitoring-prometheus-node-exporter
+        namespace: o11y
+      spec:
+        template:
+          spec:
+            containers:
+              - name: node-exporter
+                volumeMounts:
+                  - name: root
+                    mountPath: /host/root
+                    mountPropagation: None
+  - path: oidc.yaml
+
+transformers:
+  - ../../../transformers

@@ -1,0 +1,5 @@
+apiVersion: v2
+name: project-onboarding
+description: Namespace, permisos de ArgoCD y Application de staging por repositorio.
+type: application
+version: 0.1.0

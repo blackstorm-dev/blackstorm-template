@@ -1,0 +1,127 @@
+# Sitio de documentación. El contenido vive en docs/, organizado según Diátaxis.
+# Vista previa y build por el Makefile: `make docs-serve`, `make docs-build`.
+site_name: Blackstorm Infra
+site_url: https://docs.blackstorm.dev/
+site_description: A GitOps platform to deploy, operate, and recover applications on Kubernetes.
+docs_dir: docs
+
+# Lo que vive en docs/ y no se publica: planes internos, fuentes de los diagramas y la documentación
+# de arquitectura anterior, que se migra a explanation/ por partes.
+exclude_docs: |
+  /plans/
+  /diagrams/
+  /hooks/
+  /architecture/
+  /resources/references.md
+  /README.md
+
+theme:
+  name: material
+  language: en
+  logo: assets/logo.svg
+  favicon: assets/favicon.svg
+  font:
+    text: Inter
+    code: JetBrains Mono
+  palette:
+    # Los colores de la marca están en docs/assets/stylesheets/brand.css.
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.indexes
+    - navigation.path
+    - navigation.footer
+    - navigation.tracking
+    - navigation.top
+    - toc.follow
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - search.suggest
+    - search.highlight
+
+hooks:
+  - docs/hooks/cache_bust.py
+
+plugins:
+  - search
+  - glightbox:
+      zoomable: true
+      draggable: true
+
+extra:
+  generator: false
+extra_css:
+  - assets/stylesheets/brand.css
+extra_javascript:
+  - assets/javascripts/video.js
+copyright: Blackstorm Infra
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+nav:
+  - Home: index.md
+  - Developers:
+      - developers/index.md
+      - Your first release: developers/first-release.md
+      - Onboard a repository: developers/onboarding.md
+      - Secrets: developers/secrets.md
+      - Continuous integration: developers/ci.md
+      - Releases and rollback: developers/releases.md
+      - Observability: developers/observability.md
+      - Data and backups: developers/data.md
+  - Operators:
+      - operators/index.md
+      - Quick start: operators/quick-start.md
+      - Architecture:
+          - operators/architecture/index.md
+          - GitOps: operators/architecture/gitops.md
+          - Networking: operators/architecture/networking.md
+          - Identity: operators/architecture/identity.md
+          - Secrets: operators/architecture/secrets.md
+          - Delivery: operators/architecture/delivery.md
+          - Observability: operators/architecture/observability.md
+      - Operations: operators/operations.md
+      - Recovery: operators/recovery.md
+  - Tutorials:
+      - tutorials/index.md
+      - tutorials/promote-a-release-to-production.md
+      - tutorials/roll-production-back-to-an-earlier-release.md
+  - Reference:
+      - reference/index.md
+      - Components: reference/components.md
+      - Interfaces: reference/interfaces.md
+      - Repository structure: reference/repository.md
+      - Deployment contract: reference/deploy-contract.md

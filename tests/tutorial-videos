@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+# Graba los videotutoriales: los MISMOS recorridos de tests/tutorials marcados `tutorial`, en modo demo y
+# contra un Chrome que se filma. Lo llama `make tutorial-videos`, que exporta las credenciales.
+#
+#   TESTS     archivos, carpetas o nodos de pytest (default: tutorials)
+#   VIDEO=0   el mismo lote en demo y con el navegador a la vista, sin filmar
+#
+# Deja un MP4 por recorrido en var/tutorials/, nombrado por el título del tutorial y recortado entre las
+# dos marcas de color que el test muestra al empezar y al terminar (login, validación y restauración quedan
+# afuera). Nunca pisa un video existente: la toma nueva recibe fecha y hora. Las tomas completas y las
+# fallidas van a var/tutorials/diagnostics/.
+set -euo pipefail
+
+cd "$(dirname "$0")"
+TESTS="${TESTS:-tutorials}"
+VIDEO="${VIDEO:-1}"
+SALIDA="$(cd .. && pwd)/var/tutorials"
+COMPOSE=(docker compose -p blackstorm-tutorials -f docker-compose.yml)
+PYTEST=(uv run pytest)
+DEMO=(--demo "--demo-sleep=${DEMO_SLEEP:-0.5}" "--message-duration=${MESSAGE_DURATION:-4}")
+
+# shellcheck disable=SC2086
+COLLECTION="$("${PYTEST[@]}" $TESTS -m tutorial --collect-only -q)" || { echo "$COLLECTION" >&2; exit 1; }
+NODOS="$(printf '%s\n' "$COLLECTION" | grep '::' || true)"
+[ -n "$NODOS" ] || { echo "▸ no hay tutoriales en: $TESTS" >&2; exit 1; }
+echo "==> $(echo "$NODOS" | wc -l | tr -d ' ') tutoriales · video=${VIDEO}"
+
+if [ "$VIDEO" = "1" ]; then
+  command -v ffmpeg >/dev/null || { echo "Falta ffmpeg: brew install ffmpeg" >&2; exit 1; }
+  mkdir -p "$SALIDA/diagnostics"
+  "${COMPOSE[@]}" up -d chrome-video
+  trap '"${COMPOSE[@]}" --profile take down >/dev/null 2>&1 || true' EXIT
+  GRID="$("${COMPOSE[@]}" port chrome-video 4444 | sed 's/.*://')"
+  for _ in $(seq 60); do
+    if curl -sf "http://127.0.0.1:${GRID}/status" | grep -q '"ready": *true'; then break; fi
+    sleep 1
+  done
+  # Chrome resuelve *.localhost a loopback sin mirar /etc/hosts: la regla lo manda al host.
+  # SeleniumBase decide «remoto» comparando contra `localhost` literal: por eso la IP.
+  # La ventana ocupa la pantalla filmada entera: sin la posición arranca corrida y el borde derecho se corta.
+  DEMO+=(--server=127.0.0.1 "--port=${GRID}" --window-position=0,0 --window-size=1920,1080
+    "--host-resolver-rules=MAP *.localhost host.docker.internal")
+  export TUTORIAL_RECORDING=1
+else
+  DEMO+=(--headed)
+fi
+
+# Los tramos que quedan en el video, como filtro de ffmpeg: lo que hay entre la primera marca y la
+# segunda, entre la tercera y la cuarta, etcétera. Una marca es la pantalla en magenta pleno; se busca
+# sobre la toma llevada a 15 cuadros por segundo, que es donde el número de cuadro equivale al reloj.
+CORTES='
+import subprocess, sys
+raw = subprocess.run(
+    ["ffmpeg", "-nostdin", "-v", "error", "-i", sys.argv[1], "-vf", "fps=15,crop=400:400,scale=1:1",
+     "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], capture_output=True, check=True).stdout
+marked = [r > 180 and g < 90 and b > 180 for r, g, b in zip(raw[0::3], raw[1::3], raw[2::3])]
+runs, start = [], None
+for n, on in enumerate(marked + [False]):
+    if on and start is None:
+        start = n
+    elif not on and start is not None:
+        runs.append((start, n - 1))
+        start = None
+if runs and len(runs) % 2 == 0:
+    # Dos cuadros de margen: la transición hacia y desde la marca sale mezclada.
+    print("+".join(f"between(n,{a[1] + 3},{b[0] - 3})" for a, b in zip(runs[0::2], runs[1::2])))
+'
+NOMBRE='
+import json, re, sys, unicodedata
+title = json.load(open(sys.argv[1]))["title"]
+text = unicodedata.normalize("NFKD", title).encode("ascii", "ignore").decode()
+print(re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-"))
+'
+
+fallidos=()
+while IFS= read -r nodo; do
+  echo "==> $nodo"
+  titulo="$(mktemp -t tutorial-titulo-XXXXXX)"
+  sello="$(date +%Y%m%d-%H%M%S)"
+  toma="diagnostics/toma-${sello}.mkv"
+  [ "$VIDEO" != "1" ] || grabador="$("${COMPOSE[@]}" --profile take run -d recorder "/videos/${toma}")"
+  estado=0
+  TUTORIAL_TITLE="$titulo" "${PYTEST[@]}" "$nodo" "${DEMO[@]}" -q </dev/null || estado=$?
+  [ "$VIDEO" = "1" ] || { [ "$estado" = 0 ] || fallidos+=("$nodo"); rm -f "$titulo"; continue; }
+  # ffmpeg cierra el archivo al recibir la señal.
+  docker stop -t 20 "$grabador" >/dev/null
+  docker rm "$grabador" >/dev/null
+
+  nombre="$([ -s "$titulo" ] && python3 -c "$NOMBRE" "$titulo" || echo "${nodo##*::}")"
+  rm -f "$titulo"
+  completa="$SALIDA/diagnostics/${nombre}-toma-completa-${sello}.mkv"
+  mv "$SALIDA/${toma}" "$completa"
+  tramos="$(python3 -c "$CORTES" "$completa")"
+  if [ "$estado" != 0 ] || [ -z "$tramos" ]; then
+    echo "▸ FALLÓ: evidencia en $completa" >&2
+    fallidos+=("$nodo")
+    continue
+  fi
+  destino="$SALIDA/${nombre}.mp4"
+  [ ! -e "$destino" ] || destino="$SALIDA/${nombre}-${sello}.mp4"
+  ffmpeg -nostdin -v error -y -i "$completa" \
+    -vf "fps=15,select='${tramos}',setpts=N/FRAME_RATE/TB" \
+    -c:v libx264 -preset medium -crf 20 -pix_fmt yuv420p -an -movflags +faststart "$destino"
+  echo "▸ $destino"
+done <<<"$NODOS"
+
+if [ "${#fallidos[@]}" -gt 0 ]; then
+  printf '▸ con fallos:\n'
+  printf '   %s\n' "${fallidos[@]}"
+  exit 1
+fi

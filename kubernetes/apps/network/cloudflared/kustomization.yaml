@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: network
+
+# cloudflared: el extremo del túnel dentro del cluster. Se conecta hacia Cloudflare (saliente) y le entrega
+# el tráfico a la puerta envoy-external. Su token está en el Secret cloudflared-token, que carga el bootstrap.
+resources:
+  - deployment.yaml

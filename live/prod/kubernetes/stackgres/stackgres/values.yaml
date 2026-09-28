@@ -1,0 +1,39 @@
+authentication:
+  createAdminSecret: false
+  user: admin
+  type: oidc
+  oidc:
+    clientId: stackgres
+    tlsVerification: required
+    credentialsSecretSecretRef:
+      name: stackgres-oidc
+      key: client-secret
+adminui:
+  service:
+    exposeHTTP: true
+cert:
+  certManager:
+    autoConfigure: true
+collector:
+  prometheusOperator:
+    allowDiscovery: false
+    monitors:
+      - name: monitoring-kube-prometheus-prometheus
+        namespace: o11y
+        metadata:
+          labels:
+            release: monitoring
+developer:
+  patches:
+    restapi:
+      volumes:
+        - name: restapi-config
+          configMap:
+            name: stackgres-restapi-config
+      volumeMounts:
+        - name: restapi-config
+          mountPath: /app/config
+          readOnly: true
+restapi:
+  annotations:
+    configmap.reloader.stakater.com/reload: stackgres-restapi-config

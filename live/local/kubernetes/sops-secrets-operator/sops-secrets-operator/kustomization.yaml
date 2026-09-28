@@ -1,0 +1,5 @@
+# sops-secrets-operator corre en local. La definición está en kubernetes/apps/; acá van los patches de este cluster (ninguno hoy).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../../../kubernetes/apps/sops-secrets-operator/sops-secrets-operator

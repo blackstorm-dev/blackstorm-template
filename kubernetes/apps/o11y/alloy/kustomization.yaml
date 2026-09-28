@@ -1,0 +1,28 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: o11y
+configMapGenerator:
+  - name: alloy-config
+    files:
+      - config.alloy
+generatorOptions:
+  disableNameSuffixHash: true
+patches:
+  - target:
+      kind: ClusterRole
+      name: alloy
+    patch: |-
+      - op: replace
+        path: /rules
+        value:
+          - apiGroups: [""]
+            resources: [pods]
+            verbs: [get, list, watch]
+helmCharts:
+  - name: alloy
+    repo: https://grafana.github.io/helm-charts
+    version: 1.13.0
+    releaseName: alloy
+    namespace: o11y
+    valuesFile: values.yaml
+    skipTests: true

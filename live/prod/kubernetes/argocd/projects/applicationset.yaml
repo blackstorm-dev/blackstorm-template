@@ -1,0 +1,45 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: projects
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - scmProvider:
+        cloneProtocol: https
+        github:
+          organization: configured-by-environment
+          appSecretName: github-gitops
+          allBranches: false
+          excludeArchivedRepos: true
+        filters:
+          - repositoryMatch: '^[a-z]([a-z0-9-]{0,48}[a-z0-9])?$'
+            branchMatch: '^(main|master)$'
+            labelMatch: configured-by-environment
+            pathsExist:
+              - deploy/platform.yaml
+  syncPolicy:
+    preserveResourcesOnDeletion: true
+  template:
+    metadata:
+      name: '{{ .repository }}-onboarding'
+    spec:
+      project: platform
+      source:
+        repoURL: configured-by-environment
+        targetRevision: main
+        path: kubernetes/charts/project-onboarding
+        helm:
+          valuesObject:
+            repository: '{{ .repository }}'
+            repoURL: '{{ .url }}'
+            revision: '{{ .branch }}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: argocd
+      syncPolicy:
+        automated:
+          prune: false
+          selfHeal: true

@@ -1,0 +1,26 @@
+# En local envoy-external sale por NodePort: kind publica 30080/30443 en localhost:8080/8443.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: envoy-external
+  namespace: network
+spec:
+  provider:
+    kubernetes:
+      envoyService:
+        type: NodePort
+        patch:
+          type: StrategicMerge
+          value:
+            spec:
+              ports:
+                - port: 80
+                  nodePort: 30080
+                - port: 443
+                  nodePort: 30443
+                # Pods resolve *.localhost to this Service. OIDC uses the same
+                # issuer URL (including :8443) inside and outside the cluster.
+                - name: https-local
+                  port: 8443
+                  protocol: TCP
+                  targetPort: 10443

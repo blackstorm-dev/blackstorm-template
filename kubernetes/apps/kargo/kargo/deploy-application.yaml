@@ -1,0 +1,56 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: ClusterPromotionTask
+metadata:
+  name: deploy-application
+spec:
+  vars:
+    - name: gitRepo
+    - name: manifestsPath
+    - name: images
+  steps:
+    - uses: git-clone
+      as: checkout
+      config:
+        repoURL: ${{ vars.gitRepo }}
+        checkout:
+          - path: ./src
+            commit: ${{ commitFrom(vars.gitRepo).ID }}
+          - path: ./out
+            branch: deploy/${{ ctx.stage }}
+            create: true
+    - uses: git-clear
+      as: clear-output
+      config:
+        path: ./out
+    - uses: kustomize-set-image
+      as: pin-images
+      config:
+        path: ./src/${{ vars.manifestsPath }}
+        images: >-
+          ${{ map(vars.images, { {image: #.name, digest: imageFrom(#.repository).Digest} }) }}
+    - uses: kustomize-build
+      as: render-manifests
+      config:
+        path: ./src/${{ vars.manifestsPath }}
+        outPath: ./out/${{ vars.manifestsPath }}/manifests.yaml
+    - uses: git-commit
+      as: commit-manifests
+      config:
+        path: ./out
+        message: "deploy(${{ ctx.stage }}): ${{ commitFrom(vars.gitRepo).Tag }}"
+    - uses: git-push
+      as: push
+      config:
+        path: ./out
+    - uses: argocd-update
+      as: sync-argocd
+      retry:
+        timeout: 20m0s
+      config:
+        apps:
+          - name: ${{ ctx.project }}-${{ ctx.stage }}
+            namespace: argocd
+            sources:
+              - repoURL: ${{ vars.gitRepo }}
+                desiredRevision: ${{ task.outputs.push.commit }}
+                updateTargetRevision: true

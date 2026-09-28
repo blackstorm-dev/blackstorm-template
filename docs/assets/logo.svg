@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Blackstorm">
+  <defs>
+    <linearGradient id="bolt" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff6b9d"/>
+      <stop offset="1" stop-color="#e92063"/>
+    </linearGradient>
+  </defs>
+  <path d="M38 5 13 37h16l-4 22 26-33H35l3-21Z" fill="url(#bolt)" stroke="url(#bolt)" stroke-width="3" stroke-linejoin="round"/>
+</svg>

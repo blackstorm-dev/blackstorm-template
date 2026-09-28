@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: velero
+resources:
+  - ../../../../../kubernetes/apps/velero/velero-ui
+  - ../../../secrets/velero-ui
+  - httproute.yaml
+configMapGenerator:
+  - name: velero-ui-policy
+    literals:
+      - policies.csv=environment-config
+    options:
+      disableNameSuffixHash: true
+patches:
+  - path: oidc.yaml
+
+transformers:
+  - ../../../transformers

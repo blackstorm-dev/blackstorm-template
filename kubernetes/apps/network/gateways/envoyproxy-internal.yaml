@@ -1,0 +1,19 @@
+# Cómo se crean los pods de envoy-internal. El controlador (envoy-gateway) lee esto por el parametersRef del Gateway.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: envoy-internal
+  namespace: network
+spec:
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyService:
+        type: ClusterIP
+        name: envoy-internal
+      envoyDeployment:
+        container:
+          resources:
+            requests: # el default es 512Mi; un Envoy usa ~50Mi. Con el default, dos puertas se comen el nodo chico.
+              cpu: 50m
+              memory: 64Mi

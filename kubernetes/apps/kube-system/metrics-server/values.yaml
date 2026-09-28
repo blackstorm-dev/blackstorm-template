@@ -1,0 +1,16 @@
+tls:
+  type: cert-manager
+apiService:
+  insecureSkipTLSVerify: false
+metrics:
+  enabled: true
+serviceMonitor:
+  enabled: true
+  additionalLabels:
+    release: monitoring
+resources:
+  requests:
+    cpu: 100m
+    memory: 200Mi
+  limits:
+    memory: 256Mi

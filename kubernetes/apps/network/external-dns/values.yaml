@@ -1,0 +1,26 @@
+provider:
+  name: cloudflare
+
+# Token de Cloudflare (permiso de editar DNS). Lo carga el bootstrap desde live/<env>/secrets/cloudflare.env.
+env:
+  - name: CF_API_TOKEN
+    valueFrom:
+      secretKeyRef:
+        name: cloudflare-api-token
+        key: api-token
+
+sources:
+  - gateway-httproute
+  - gateway-grpcroute
+
+policy: sync # crea y borra. Solo toca registros propios: los marca con un TXT de dueño
+txtOwnerId: blackstorm
+
+extraArgs:
+  - --cloudflare-proxied # los registros pasan por Cloudflare (WAF, caché)
+  - --gateway-label-filter=external-dns=enabled # solo las puertas marcadas: la pública, no la interna
+
+resources:
+  requests:
+    cpu: 20m
+    memory: 64Mi

@@ -1,0 +1,44 @@
+
+# Clave de sops del repo (la genera make init). Nunca a git. Hacele backup.
+age.key
+
+# Terraform: providers descargados y estado (el estado puede contener secretos)
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+
+# Credenciales
+kubeconfig*
+
+# Overrides temporales (make docs-diagram)
+*_override.tf
+
+# Terragrunt
+.terragrunt-cache/
+
+# Locks de providers: solo valen los de live/ (los gestiona Terragrunt)
+terraform/modules/**/.terraform.lock.hcl
+terraform/resources/**/.terraform.lock.hcl
+
+# Kubeconfigs generados por make kubeconfig (dentro del repo los usa kubectl vía KUBECONFIG de mise)
+.kube/
+
+# Deploy key de cada entorno (la genera make infra-plan/apply; Terraform sube la pública). Nunca a git.
+live/*/deploy.key
+live/*/deploy.key.pub
+
+# Cache de charts que baja kustomize (helmCharts) al renderizar
+kubernetes/apps/**/charts/
+live/*/kubernetes/**/charts/
+
+# Checkouts locales; project-template se versiona como submódulo.
+/projects/*
+!/projects/project-template
+
+# Videotutoriales grabados (make tutorial-videos) y su copia para el sitio (make docs-videos)
+/var/
+/docs/videos/
+
+# Sitio de documentación generado (make docs-build)
+/site/

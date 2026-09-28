@@ -1,0 +1,16 @@
+api:
+  tls:
+    enabled: false
+    terminatedUpstream: true
+  secret:
+    name: kargo-admin
+  secretManagementEnabled: false
+  rollouts:
+    integrationEnabled: false
+controller:
+  argocd:
+    namespace: argocd
+  rollouts:
+    integrationEnabled: false
+externalWebhooksServer:
+  enabled: false

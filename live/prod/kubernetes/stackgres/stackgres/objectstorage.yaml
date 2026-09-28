@@ -1,0 +1,22 @@
+apiVersion: stackgres.io/v1beta1
+kind: SGObjectStorage
+metadata:
+  name: spaces
+  namespace: stackgres
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  type: s3Compatible
+  s3Compatible:
+    bucket: configured-by-environment
+    region: configured-by-environment
+    endpoint: configured-by-environment
+    enablePathStyleAddressing: true
+    awsCredentials:
+      secretKeySelectors:
+        accessKeyId:
+          name: stackgres-spaces
+          key: accessKeyId
+        secretAccessKey:
+          name: stackgres-spaces
+          key: secretAccessKey

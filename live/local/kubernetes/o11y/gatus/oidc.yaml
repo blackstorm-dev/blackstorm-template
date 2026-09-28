@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gatus
+  namespace: o11y
+  annotations:
+    reloader.stakater.com/auto: 'true'
+spec:
+  template:
+    spec:
+      containers:
+        - name: gatus
+          env:
+            - name: GATUS_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: gatus-oidc
+                  key: client-secret
+            - name: SSL_CERT_FILE
+              value: /etc/local-trust/ca-certificates.crt
+          volumeMounts:
+            - name: oidc-config
+              mountPath: /config/security.yaml
+              subPath: security.yaml
+              readOnly: true
+            - name: local-trust
+              mountPath: /etc/local-trust
+              readOnly: true
+      volumes:
+        - name: oidc-config
+          configMap:
+            name: gatus-oidc
+        - name: local-trust
+          configMap:
+            name: local-trust

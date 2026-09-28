@@ -1,0 +1,30 @@
+tempo:
+  reportingEnabled: false
+  streamOverHttpEnabled: true
+  retention: 72h
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: [ALL]
+serviceAccount:
+  automountServiceAccountToken: false
+persistence:
+  enabled: true
+  size: 5Gi
+  enableStatefulSetAutoDeletePVC: false
+serviceMonitor:
+  enabled: true
+  additionalLabels:
+    release: monitoring

@@ -1,0 +1,20 @@
+# Example installation: replace these values before creating a cluster.
+environment: local
+github:
+  organization: example-org
+  infrastructureRepository: example-infra
+  discoveryTopic: example-deploy-local
+cluster:
+  name: example-local
+  httpPort: 8080
+  httpsPort: 8443
+domain: localhost
+identity:
+  adminUsername: example-admin
+  adminEmail: admin@example.com
+  allowedSubjects:
+  - REPLACE_ME
+  rolloutsClient: false
+backups:
+  bucket: example-backups
+  region: nyc3

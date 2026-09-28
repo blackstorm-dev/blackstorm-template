@@ -1,0 +1,28 @@
+# Lo mínimo que se instala a mano, una vez por cluster, para que el cluster se administre solo desde git.
+# Usa los mismos values que kubernetes/apps/: después del bootstrap, ArgoCD gestiona estas dos releases
+# (incluida ella misma) desde ahí. Lo corre `make bootstrap ENV=<env>`.
+
+helmDefaults:
+  # Helm 4's watcher can stall on before-hook-creation deletions during a fresh install.
+  trackMode: helm-legacy
+
+repositories:
+  - name: argo
+    url: https://argoproj.github.io/argo-helm
+  - name: sops-secrets-operator
+    url: https://isindir.github.io/sops-secrets-operator/
+
+releases:
+  - name: argocd
+    namespace: argocd
+    chart: argo/argo-cd
+    version: 10.9.2
+    values:
+      - ../kubernetes/apps/argocd/argocd/values.yaml
+
+  - name: sops-secrets-operator
+    namespace: sops-secrets-operator
+    chart: sops-secrets-operator/sops-secrets-operator
+    version: 0.28.1
+    values:
+      - ../kubernetes/apps/sops-secrets-operator/sops-secrets-operator/values.yaml

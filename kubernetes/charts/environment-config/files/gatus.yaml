@@ -1,0 +1,10 @@
+security:
+  oidc:
+    issuer-url: {{ include "environment.url" (dict "name" "dex" "config" .Values) }}
+    redirect-url: {{ include "environment.url" (dict "name" "gatus" "config" .Values) }}/authorization-code/callback
+    client-id: gatus
+    client-secret: ${GATUS_CLIENT_SECRET}
+    scopes: [openid, profile, email]
+    allowed-subjects:
+{{ range .Values.identity.allowedSubjects }}      - {{ . }}
+{{ end -}}

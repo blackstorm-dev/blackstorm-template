@@ -1,0 +1,47 @@
+crds:
+  create: false
+alloy:
+  enableReporting: false
+  configMap:
+    create: false
+    name: alloy-config
+    key: config.alloy
+  storagePath: /var/lib/alloy
+  extraPorts:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+      protocol: TCP
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+      protocol: TCP
+  mounts:
+    varlog: true
+    extra:
+      - name: alloy-storage
+        mountPath: /var/lib/alloy
+  securityContext:
+    runAsUser: 0
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: [ALL]
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 384Mi
+controller:
+  type: daemonset
+  volumes:
+    extra:
+      - name: alloy-storage
+        hostPath:
+          path: /var/lib/alloy
+          type: DirectoryOrCreate
+serviceMonitor:
+  enabled: true
+  additionalLabels:
+    release: monitoring

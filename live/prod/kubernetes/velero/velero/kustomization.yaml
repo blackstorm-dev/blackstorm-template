@@ -1,0 +1,38 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../../../kubernetes/apps/velero/velero
+  - ../../../secrets/velero
+  - schedule.yaml
+patches:
+  - target:
+      kind: BackupStorageLocation
+      name: default
+    patch: |-
+      - op: replace
+        path: /spec/provider
+        value: aws
+      - op: replace
+        path: /spec/objectStorage/bucket
+        value: configured-by-environment
+      - op: add
+        path: /spec/objectStorage/prefix
+        value: prod/velero
+      - op: add
+        path: /spec/default
+        value: true
+      - op: add
+        path: /spec/credential
+        value:
+          name: velero-spaces
+          key: cloud
+      - op: add
+        path: /spec/config
+        value:
+          region: configured-by-environment
+          s3Url: configured-by-environment
+          s3ForcePathStyle: "true"
+          checksumAlgorithm: ""
+
+transformers:
+  - ../../../transformers

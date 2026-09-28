@@ -1,0 +1,6 @@
+name: GitHub
+issuer: {{ include "environment.url" (dict "name" "dex" "config" .Values) }}
+clientID: argocd
+clientSecret: $argocd-oidc:clientSecret
+cliClientID: argocd-cli
+requestedScopes: [openid, profile, email, groups, offline_access]

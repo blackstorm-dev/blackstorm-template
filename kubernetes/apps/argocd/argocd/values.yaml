@@ -1,0 +1,17 @@
+# Values de ArgoCD. Los usa el bootstrap (helmfile) y después ArgoCD mismo (kustomization.yaml).
+
+configs:
+  params:
+    # TLS lo termina el gateway (fase 3). Hasta entonces se entra con port-forward.
+    server.insecure: true
+  cm:
+    # Las apps de kubernetes/apps/ inflan charts de Helm desde kustomize (helmCharts).
+    kustomize.buildOptions: --enable-helm
+    resource.compareoptions: |
+      ignoreResourceStatusField: crd
+
+# SSO uses the shared Dex service; the bundled instance stays disabled.
+dex:
+  enabled: false
+notifications:
+  enabled: false

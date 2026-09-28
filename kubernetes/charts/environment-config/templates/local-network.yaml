@@ -1,0 +1,18 @@
+{{ if eq .Values.environment "local" }}
+apiVersion: builtin
+kind: PatchTransformer
+metadata:
+  name: local-gateway-port
+target:
+  kind: EnvoyProxy
+  name: envoy-external
+patch: |-
+{{ if eq (int .Values.cluster.httpsPort) 443 }}
+  - op: remove
+    path: /spec/provider/kubernetes/envoyService/patch/value/spec/ports/2
+{{ else }}
+  - op: replace
+    path: /spec/provider/kubernetes/envoyService/patch/value/spec/ports/2/port
+    value: {{ int .Values.cluster.httpsPort }}
+{{ end }}
+{{ end }}

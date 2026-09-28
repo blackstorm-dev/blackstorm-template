@@ -1,0 +1,16 @@
+serviceAccount:
+  name: arc-controller
+
+flags:
+  logLevel: info
+  updateStrategy: eventual
+  # Los recursos temporales pertenecen a ARC, no a la Application de ArgoCD.
+  excludeLabelPropagationPrefixes:
+    - argocd.argoproj.io/instance
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    memory: 512Mi

@@ -1,0 +1,28 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../../../kubernetes/apps/kargo/kargo
+  - ../../../secrets/kargo
+  - httproute.yaml
+patches:
+  - path: oidc.yaml
+  - target:
+      kind: ConfigMap
+      name: kargo-api
+    patch: |-
+      - op: replace
+        path: /data/ADMIN_ACCOUNT_TOKEN_ISSUER
+        value: configured-by-environment
+      - op: replace
+        path: /data/ADMIN_ACCOUNT_TOKEN_AUDIENCE
+        value: configured-by-environment
+  - target:
+      kind: ConfigMap
+      name: kargo-controller
+    patch: |-
+      - op: replace
+        path: /data/API_SERVER_BASE_URL
+        value: configured-by-environment
+
+transformers:
+  - ../../../transformers

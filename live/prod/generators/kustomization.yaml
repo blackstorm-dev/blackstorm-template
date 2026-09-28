@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../config
+patches:
+  - target:
+      kind: ReplacementTransformer
+    patch: |-
+      $patch: delete
+      apiVersion: builtin
+      kind: ReplacementTransformer
+      metadata:
+        name: unused
+  - target:
+      kind: PatchTransformer
+    patch: |-
+      $patch: delete
+      apiVersion: builtin
+      kind: PatchTransformer
+      metadata:
+        name: unused

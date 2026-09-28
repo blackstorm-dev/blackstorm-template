@@ -1,0 +1,23 @@
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: argo-rollouts-oidc
+  namespace: argo-rollouts
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: argo-rollouts-dashboard
+  oidc:
+    provider:
+      issuer: configured-by-environment
+    clientID: argo-rollouts
+    clientSecret:
+      name: argo-rollouts-oidc
+    redirectURL: configured-by-environment
+    logoutPath: /logout
+    scopes:
+      - openid
+      - profile
+      - email
+      - groups

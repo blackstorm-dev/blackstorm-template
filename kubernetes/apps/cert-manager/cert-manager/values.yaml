@@ -1,0 +1,7 @@
+crds:
+  enabled: true
+# Habilita el soporte de Gateway API (challenge HTTP-01 vía HTTPRoute). Los issuers los define cada entorno.
+config:
+  apiVersion: controller.config.cert-manager.io/v1alpha1
+  kind: ControllerConfiguration
+  enableGatewayAPI: true

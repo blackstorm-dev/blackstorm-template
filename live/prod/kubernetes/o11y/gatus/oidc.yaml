@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gatus
+  namespace: o11y
+  annotations:
+    reloader.stakater.com/auto: 'true'
+spec:
+  template:
+    spec:
+      containers:
+        - name: gatus
+          env:
+            - name: GATUS_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: gatus-oidc
+                  key: client-secret
+          volumeMounts:
+            - name: oidc-config
+              mountPath: /config/security.yaml
+              subPath: security.yaml
+              readOnly: true
+      volumes:
+        - name: oidc-config
+          configMap:
+            name: gatus-oidc

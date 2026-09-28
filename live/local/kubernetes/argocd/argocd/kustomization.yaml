@@ -1,0 +1,14 @@
+# argocd corre en local. La definición está en kubernetes/apps/; acá, cómo se expone en este cluster.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../../../kubernetes/apps/argocd/argocd
+  - httproute.yaml
+  - ../../../secrets
+  - ../../../secrets/argocd
+patches:
+  - path: oidc.yaml
+  - path: rbac.yaml
+
+transformers:
+  - ../../../transformers
