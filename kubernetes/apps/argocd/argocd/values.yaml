@@ -4,6 +4,9 @@ configs:
   params:
     # TLS lo termina el gateway (fase 3). Hasta entonces se entra con port-forward.
     server.insecure: true
+    # Project examples are Git submodules, not deployment inputs.
+    reposerver.enable.git.submodule: "false"
+    applicationsetcontroller.enable.git.submodule: "false"
   cm:
     # Las apps de kubernetes/apps/ inflan charts de Helm desde kustomize (helmCharts).
     kustomize.buildOptions: --enable-helm
